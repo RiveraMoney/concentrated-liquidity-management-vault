@@ -4,3 +4,9 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/rari-capital/solmate
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lib/pancake-smart-contracts"]
+	path = lib/pancake-smart-contracts
+	url = https://github.com/pancakeswap/pancake-smart-contracts
