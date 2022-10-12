@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
-abstract contract AbstractStrategy is Ownable, Pausable {
-
-    struct CommonAddresses {
+struct CommonAddresses {
         address vault;
         address router;
         address manager;
     }
+
+abstract contract AbstractStrategy is Ownable, Pausable {
 
     // common addresses for the strategy
     address public vault;
@@ -19,6 +19,12 @@ abstract contract AbstractStrategy is Ownable, Pausable {
     event SetVault(address vault);
     event SetRouter(address unirouter);
     event SetManager(address manager);
+
+    //Modifier to restrict access to only vault
+    modifier onlyVault() {
+        require(msg.sender == owner() || msg.sender == vault, "Strategy: caller is not the owner");
+        _;
+    }
 
     constructor(
         CommonAddresses memory _commonAddresses

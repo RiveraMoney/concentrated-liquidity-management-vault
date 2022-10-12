@@ -94,7 +94,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
     }
 
     // puts the funds to work
-    function deposit() public whenNotPaused {
+    function deposit() public whenNotPaused onlyVault {
         //Entire LP balance of the strategy contract address is deployed to the farm to earn CAKE
         uint256 stakeBal = IERC20(stake).balanceOf(address(this));
 
@@ -104,10 +104,8 @@ contract CakeLpStakingV1 is AbstractStrategy {
         }
     }
 
-    function withdraw(uint256 _amount) external {
+    function withdraw(uint256 _amount) external onlyVault {
         //Pretty Straight forward almost same as AAVE strategy
-        require(msg.sender == vault, "!vault");
-
         uint256 stakeBal = IERC20(stake).balanceOf(address(this));
 
         if (stakeBal < _amount) {
@@ -228,8 +226,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
     }
 
     // called as part of strat migration. Sends all the available funds back to the vault.
-    function retireStrat() external {
-        require(msg.sender == vault, "!vault");
+    function retireStrat() external onlyVault {
 
         IMasterChef(chef).emergencyWithdraw(poolId);
 
