@@ -139,7 +139,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
         uint256 rewardBal = IERC20(reward).balanceOf(address(this)); //reward tokens will be CAKE. Cake balance of this strategy address will be zero before harvest.
         if (rewardBal > 0) {
             addLiquidity();
-            uint256 stakeHarvested = balanceOfstake();
+            uint256 stakeHarvested = balanceOfStake();
             deposit(); //Deposits the LP tokens from harvest
 
             lastHarvest = block.timestamp;
@@ -189,11 +189,11 @@ contract CakeLpStakingV1 is AbstractStrategy {
 
     // calculate the total underlaying 'stake' held by the strat.
     function balanceOf() public view returns (uint256) {
-        return balanceOfstake() + balanceOfPool();
+        return balanceOfStake() + balanceOfPool();
     }
 
     // it calculates how much 'stake' this contract holds.
-    function balanceOfstake() public view returns (uint256) {
+    function balanceOfStake() public view returns (uint256) {
         return IERC20(stake).balanceOf(address(this));
     }
 

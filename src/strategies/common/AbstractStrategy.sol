@@ -22,7 +22,7 @@ abstract contract AbstractStrategy is Ownable, Pausable {
 
     //Modifier to restrict access to only vault
     modifier onlyVault() {
-        require(msg.sender == owner() || msg.sender == vault, "Strategy: caller is not the owner");
+        require(msg.sender == owner() || msg.sender == vault, "!vault");
         _;
     }
 
