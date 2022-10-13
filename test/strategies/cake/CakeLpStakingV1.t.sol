@@ -53,40 +53,32 @@ contract CakeLpStakingV1Test is Test {
 
     function setUp() public {
         ///@dev creating the routes
-        _rewardToNativeRoute.push(_cake);
-        _rewardToNativeRoute.push(_wbnb);
+        _rewardToNativeRoute[0] = _cake;
+        _rewardToNativeRoute[1] = _wbnb;
 
-        _rewardToLp0Route.push(_cake);
-        _rewardToLp0Route.push(_busd);
-        _rewardToLp0Route.push(_wom);
+        _rewardToLp0Route[0] = _cake;
+        _rewardToLp0Route[1] = _busd;
+        _rewardToLp0Route[2] = _wom;
 
-        _rewardToLp1Route.push(_cake);
-        _rewardToLp1Route.push(_busd);
+        _rewardToLp1Route[0] = _cake;
+        _rewardToLp1Route[1] = _busd;
 
         ///@dev all deployments will be made by the user
         vm.startPrank(_user);
 
         ///@dev Initializing the vault with invalid strategy
-        vault = new RiveraAutoCompoundingVaultV1(IStrategy(0x14bA0D857C496C03A8c8D5Fcc6c92d30Df804775), rivTokenName, rivTokenSymbol, stratUpdateDelay);
+        vault = new RiveraAutoCompoundingVaultV1(IStrategy(0xe1ef398EfA012e021cB2418e94B94A8018D4AF9E), rivTokenName, rivTokenSymbol, stratUpdateDelay);
 
         ///@dev Initializing the strategy
         CommonAddresses memory _commonAddresses = CommonAddresses(address(vault), _router, _manager);
         strategy = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
-
-        ///@dev updating the strategy with the deployed one
-        vault.proposeStrat(address(strategy));
-        vm.warp(block.timestamp + 21600 + 1);
-        vault.upgradeStrat();
+        vm.stopPrank();
 
         ///@dev Transfering LP tokens from a whale to my accounts
         vm.startPrank(_whale);
-        IERC20(_stake).transfer(_user, 1e24);
-        IERC20(_stake).transfer(_other, 1e24);
+        IERC20(_stake).transfer(_user, 1e22);
+        IERC20(_stake).transfer(_other, 1e22);
         vm.stopPrank();
-
-        ///@dev Giving approval to required contracts
-        vm.prank(_manager);
-        strategy.unpause();
 
     }
 
@@ -133,7 +125,7 @@ contract CakeLpStakingV1Test is Test {
 
         vm.prank(address(vault));
         vm.expectEmit(false, false, false, true);
-        emit Withdraw(1e18);
+        emit Withdraw(0);  //Event emitted it Withdraw(tvl after withdraw)
         strategy.withdraw(1e18);
 
         uint256 vaultStakeBalanceAfter = IERC20(_stake).balanceOf(address(vault));
@@ -170,14 +162,14 @@ contract CakeLpStakingV1Test is Test {
         uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
         assertEq(stratPoolBalanceBefore, 1e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
 
         vm.expectEmit(true, false, false, false);
         emit StratHarvest(address(this), 0, 0); //We don't try to match the second and third parameter of the event. They're result of Pancake swap contracts, we trust the protocol to be correct.
         strategy.harvest();
         
         uint256 stratPoolBalanceAfter = strategy.balanceOfPool();
-        require(stratPoolBalanceAfter > stratPoolBalanceBefore);
+        assertGt(stratPoolBalanceAfter, stratPoolBalanceBefore);
     }
 
     function test_HarvestWhenPaused() public {
@@ -189,7 +181,7 @@ contract CakeLpStakingV1Test is Test {
         uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
         assertEq(stratPoolBalanceBefore, 1e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
 
         vm.prank(_manager);
         strategy.pause();
@@ -208,15 +200,15 @@ contract CakeLpStakingV1Test is Test {
         uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
         assertEq(stratPoolBalanceBefore, 1e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
 
         vm.prank(_manager);
         vm.expectEmit(true, false, false, false);
-        emit StratHarvest(address(this), 0, 0); //We don't try to match the second and third parameter of the event. They're result of Pancake swap contracts, we trust the protocol to be correct.
-        strategy.harvest();
+        emit StratHarvest(_manager, 0, 0); //We don't try to match the second and third parameter of the event. They're result of Pancake swap contracts, we trust the protocol to be correct.
+        strategy.managerHarvest();
         
         uint256 stratPoolBalanceAfter = strategy.balanceOfPool();
-        require(stratPoolBalanceAfter > stratPoolBalanceBefore);
+        assertGt(stratPoolBalanceAfter, stratPoolBalanceBefore);
     }
 
     function test_HarvestWhenNotCalledByManager() public {
@@ -228,12 +220,12 @@ contract CakeLpStakingV1Test is Test {
         uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
         assertEq(stratPoolBalanceBefore, 1e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
 
         vm.prank(_manager);
         strategy.pause();
         vm.expectRevert("!manager");
-        strategy.harvest();
+        strategy.managerHarvest();
     }
 
     function test_BalanceOfStake() public {
@@ -307,9 +299,9 @@ contract CakeLpStakingV1Test is Test {
         uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
         assertEq(stratPoolBalanceBefore, 1e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
 
-        require(strategy.rewardsAvailable() > 0);
+        assertGt(strategy.rewardsAvailable(), 0);
 
     }
 
@@ -322,9 +314,9 @@ contract CakeLpStakingV1Test is Test {
         uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
         assertEq(stratPoolBalanceBefore, 1e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
 
-        require(strategy.rewardsAvailable() > 0);
+        assertGt(strategy.rewardsAvailable(), 0);
     }
 
     function test_RetireStratWhenCalledByVault() public {

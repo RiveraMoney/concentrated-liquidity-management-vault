@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///As there is dependency on Cake swap protocol. Replicating the protocol deployment on separately is difficult. Hence we would test on main net fork of BSC.
 ///The addresses used below must also be mainnet addresses.
 
-contract CakeLpStakingV1Test is Test {
+contract RiveraAutoCompoundingVaultV1Test is Test {
     CakeLpStakingV1 strategy;
     RiveraAutoCompoundingVaultV1 vault;
 
