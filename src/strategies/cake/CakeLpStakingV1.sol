@@ -94,7 +94,11 @@ contract CakeLpStakingV1 is AbstractStrategy {
     }
 
     // puts the funds to work
-    function deposit() public whenNotPaused onlyVault {
+    function deposit() public onlyVault {
+        _deposit();
+    }
+
+    function _deposit() internal whenNotPaused {
         //Entire LP balance of the strategy contract address is deployed to the farm to earn CAKE
         uint256 stakeBal = IERC20(stake).balanceOf(address(this));
 
@@ -140,7 +144,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
         if (rewardBal > 0) {
             addLiquidity();
             uint256 stakeHarvested = balanceOfStake();
-            deposit(); //Deposits the LP tokens from harvest
+            _deposit(); //Deposits the LP tokens from harvest
 
             lastHarvest = block.timestamp;
             emit StratHarvest(msg.sender, stakeHarvested, balanceOf());
@@ -251,7 +255,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
 
         _giveAllowances();
 
-        deposit();
+        _deposit();
     }
 
     function _giveAllowances() internal {
