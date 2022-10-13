@@ -15,14 +15,15 @@ import "../strategies/common/interfaces/IStrategy.sol";
  * This is the contract that receives funds and that users interface with.
  * The yield optimizing strategy itself is implemented in a separate 'Strategy.sol' contract.
  */
-contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard {
-    using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
-    struct StratCandidate {
+struct StratCandidate {
         address implementation;
         uint proposedTime;
     }
+
+contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    using SafeMath for uint256;
 
     // The last proposed strategy to switch to.
     StratCandidate public stratCandidate;
@@ -109,7 +110,7 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard {
         _amount = _after.sub(_pool); // Additional check for deflationary tokens. Yeah right for deflationary tokens amount will change
         uint256 shares = 0;
         if (totalSupply() == 0) {
-            shares = _amount; //If no funds are there in the vault then shares shares minted is same as amount
+            shares = _amount; //If no funds are there in the vault then shares minted is same as amount
         } else {
             shares = (_amount.mul(totalSupply())).div(_pool); //If there are funds already then the user's share needs to be scaled
         }
@@ -168,6 +169,10 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard {
          }); //Sets the variable and emits event
 
         emit NewStratCandidate(_implementation);
+    }
+
+    function getStratProposal() public view returns (StratCandidate memory) {
+        return stratCandidate;
     }
 
     /** 
