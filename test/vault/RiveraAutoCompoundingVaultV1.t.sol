@@ -53,48 +53,44 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
     address _manager = 0x2fdD10fa2CA4Dfb87c52e2c4F0488120eDD61B6B;
     address _other = 0xF18Bb60E7Bd9BD65B61C57b9Dd89cfEb774274a1;
     address _whale = 0x14bA0D857C496C03A8c8D5Fcc6c92d30Df804775;
+    address _busdWhale = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;
 
     CommonAddresses _commonAddresses;
 
     function setUp() public {
         ///@dev creating the routes
-        _rewardToNativeRoute.push(_cake);
-        _rewardToNativeRoute.push(_wbnb);
+        _rewardToNativeRoute[0] = _cake;
+        _rewardToNativeRoute[1] = _wbnb;
 
-        _rewardToLp0Route.push(_cake);
-        _rewardToLp0Route.push(_busd);
-        _rewardToLp0Route.push(_wom);
+        _rewardToLp0Route[0] = _cake;
+        _rewardToLp0Route[1] = _busd;
+        _rewardToLp0Route[2] = _wom;
 
-        _rewardToLp1Route.push(_cake);
-        _rewardToLp1Route.push(_busd);
+        _rewardToLp1Route[0] = _cake;
+        _rewardToLp1Route[1] = _busd;
 
         ///@dev all deployments will be made by the user
         vm.startPrank(_user);
 
         ///@dev Initializing the vault with invalid strategy
-        vault = new RiveraAutoCompoundingVaultV1(IStrategy(0x14bA0D857C496C03A8c8D5Fcc6c92d30Df804775), rivTokenName, rivTokenSymbol, stratUpdateDelay);
+        vault = new RiveraAutoCompoundingVaultV1(IStrategy(0xe1ef398EfA012e021cB2418e94B94A8018D4AF9E), rivTokenName, rivTokenSymbol, stratUpdateDelay);
 
         ///@dev Initializing the strategy
         _commonAddresses = CommonAddresses(address(vault), _router, _manager);
         strategy = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
-
-        ///@dev updating the strategy with the deployed one
-        vault.proposeStrat(address(strategy));
-        vm.warp(block.timestamp + 21600 + 1);
-        vault.upgradeStrat();
+        vm.stopPrank();
 
         ///@dev Transfering LP tokens from a whale to my accounts
         vm.startPrank(_whale);
-        IERC20(_stake).transfer(_user, 1e24);
-        IERC20(_stake).transfer(_other, 1e24);
-        IERC20(_busd).transfer(_user, 1e19);
+        IERC20(_stake).transfer(_user, 1e22);
+        IERC20(_stake).transfer(_other, 1e22);
         vm.stopPrank();
 
-        ///@dev Giving approval to required contracts
-        vm.prank(_manager);
-        strategy.unpause();
+        vm.prank(_busdWhale);
+        IERC20(_busd).transfer(_user, 1e22);
+
         vm.prank(_user);
-        IERC20(_stake).approve(address(vault), type(uint).max);
+        IERC20(_stake).approve(address(vault), type(uint256).max);
 
     }
 
@@ -153,7 +149,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.prank(_user);
         vault.deposit(1e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
         strategy.harvest();
 
         uint256 userStakeBalanceBefore = IERC20(_stake).balanceOf(_user);
@@ -198,7 +194,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
 
         uint256 pricePerFullShareBefore = vault.getPricePerFullShare();
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
         strategy.harvest();
 
         uint256 pricePerFullShareAfter = vault.getPricePerFullShare();
@@ -226,20 +222,12 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
     }
 
     function test_EarnWhenNotCalledByOwner() public {
-        uint256 userStakeBalanceBefore = IERC20(_stake).balanceOf(_user);
-        uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
 
         vm.startPrank(_user);
         IERC20(_stake).transfer(address(vault), 1e18);
         vm.stopPrank();
         vm.expectRevert("Ownable: caller is not the owner");
         vault.earn();
-
-        uint256 userStakeBalanceAfter = IERC20(_stake).balanceOf(_user);
-        assertEq(userStakeBalanceBefore - userStakeBalanceAfter, 1e18);
-
-        uint256 stratPoolBalanceAfter = strategy.balanceOfPool();
-        assertEq(stratPoolBalanceAfter - stratPoolBalanceBefore, 1e18);
 
     }
 
@@ -248,7 +236,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.prank(_user);
         vault.deposit(2e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
         strategy.harvest();
 
         uint256 userShareBefore = vault.balanceOf(_user);
@@ -272,7 +260,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.prank(_user);
         vault.deposit(2e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
         strategy.harvest();
 
         vm.expectRevert("Ownable: caller is not the owner");
@@ -283,7 +271,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.prank(_user);
         vault.deposit(2e18);
 
-        vm.warp(30 * 21600);
+        vm.roll(block.number + 100);
         strategy.harvest();
 
         uint256 userShareBefore = vault.balanceOf(_user);
@@ -327,6 +315,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         CakeLpStakingV1 newStrat = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
 
         vm.expectRevert("Proposal not valid for this Vault");
+        vm.prank(_user);
         vault.proposeStrat(address(newStrat));
 
     }
@@ -358,7 +347,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
 
         assertEq(address(vault.strategy()), address(strategy));
 
-        vm.warp(21600 + 1);
+        vm.warp(block.timestamp + 21600 + 1);
 
         vm.prank(_user);
         vm.expectEmit(false, false, false, true);
@@ -412,7 +401,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
 
         assertEq(address(vault.strategy()), address(strategy));
 
-        vm.warp(21600 + 1);
+        vm.warp(block.timestamp + 21600 + 1);
 
         vm.expectRevert("Ownable: caller is not the owner");
         vault.upgradeStrat();
