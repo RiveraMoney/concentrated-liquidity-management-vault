@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 import "../strategies/common/interfaces/IStrategy.sol";
 
@@ -21,7 +22,7 @@ struct StratCandidate {
         uint proposedTime;
     }
 
-contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard {
+contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initializable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -32,10 +33,17 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard {
     // The minimum time it has to pass before a strat candidate can be approved.
     uint256 public immutable approvalDelay;
 
+    // address public factory;
+
     event NewStratCandidate(address implementation);
     event UpgradeStrat(address implementation);
 
-    /**
+    // modifier onlyFactory() {
+    //     require(msg.sender == factory, "!factory");
+    //     _;
+    // }
+
+    /*
      * @dev Sets the value of {token} to the token that the vault will
      * hold as underlying value. It initializes the vault's own 'moo' token.
      * This token is minted when someone does a deposit. It is burned in order
@@ -46,16 +54,20 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard {
      * @param _approvalDelay the delay before a new strat can be approved.
      */
     constructor (
-        IStrategy _strategy,
         string memory _name,
         string memory _symbol,
         uint256 _approvalDelay
+        // address _factory
     ) public ERC20(
         _name,
         _symbol
     ) {
-        strategy = _strategy;
         approvalDelay = _approvalDelay;
+        // factory = _factory;
+    }
+
+    function init(IStrategy _strategy) public initializer {
+        strategy = _strategy;
     }
 
     function stake() public view returns (IERC20) {

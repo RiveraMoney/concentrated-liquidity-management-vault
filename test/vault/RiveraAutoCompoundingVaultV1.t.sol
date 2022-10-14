@@ -73,11 +73,12 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.startPrank(_user);
 
         ///@dev Initializing the vault with invalid strategy
-        vault = new RiveraAutoCompoundingVaultV1(IStrategy(0xe1ef398EfA012e021cB2418e94B94A8018D4AF9E), rivTokenName, rivTokenSymbol, stratUpdateDelay);
+        vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay);
 
         ///@dev Initializing the strategy
         _commonAddresses = CommonAddresses(address(vault), _router, _manager);
         strategy = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
+        vault.init(IStrategy(address(strategy)));
         vm.stopPrank();
 
         ///@dev Transfering LP tokens from a whale to my accounts
@@ -92,6 +93,11 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.prank(_user);
         IERC20(_stake).approve(address(vault), type(uint256).max);
 
+    }
+
+    function test_InitializationCanBeDoneOnlyOnce() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        vault.init(IStrategy(address(strategy)));
     }
 
     function test_Balance() public {
