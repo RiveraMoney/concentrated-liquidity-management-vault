@@ -14,4 +14,6 @@ interface IMasterChef {
     function userInfo(uint256 _pid, address _user) external view returns (uint256, uint256);
 
     function emergencyWithdraw(uint256 _pid) external;
+
+    function poolLength() external view returns (uint256);
 }

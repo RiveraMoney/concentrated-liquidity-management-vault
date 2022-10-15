@@ -7,9 +7,17 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 
 import "pancakeswap-peripheral/contracts/interfaces/IPancakeRouter02.sol";
 import "@pancakeswap-libs/pancake-swap-core/contracts/interfaces/IPancakePair.sol";
-import "../common/interfaces/IMasterChef.sol";
+import "./interfaces/IMasterChef.sol";
 import "../common/AbstractStrategy.sol";
 import "../utils/StringUtils.sol";
+
+struct CakePoolParams {
+    address stake;
+    uint256 poolId;
+    address chef;
+    address[] rewardToLp0Route;
+    address[] rewardToLp1Route;
+}
 
 contract CakeLpStakingV1 is AbstractStrategy {
     using SafeERC20 for IERC20;
@@ -43,29 +51,20 @@ contract CakeLpStakingV1 is AbstractStrategy {
     event Withdraw(uint256 tvl);
 
     ///@dev
-    ///@param _stake: the token which is staked in the pool
-    ///@param _poolId: Pool id of the LP pool in cake swap
-    ///@param _chef: master chef contract of the pancake swap protocol
+    ///@param _cakePoolParams: Has the cake pool specific params
     ///@param _commonAddresses: Has addresses common to all vaults, check Rivera Fee manager for more info
-    ///@param _rewardToNativeRoute: Route to convert the reward tokens from the staking pool to native tokens of the blockchain
-    ///@param _rewardToLp0Route: Route to convert the reward tokens from the staking pool to token 0 of the LP (Liquidity Pool or Liquidity Pair)
-    ///@param _rewardToLp1Route: Route to convert the reward tokens from the staking pool to token 1 of the LP (Liquidity Pool or Liquidity Pair)
     constructor(
-        address _stake,
-        uint256 _poolId,
-        address _chef,
-        CommonAddresses memory _commonAddresses,
-        address[] memory _rewardToNativeRoute,
-        address[] memory _rewardToLp0Route,
-        address[] memory _rewardToLp1Route
+        CakePoolParams memory _cakePoolParams,
+        CommonAddresses memory _commonAddresses
     ) AbstractStrategy(_commonAddresses) {
-        stake = _stake;
-        poolId = _poolId;
-        chef = _chef;
+        stake = _cakePoolParams.stake;
+        poolId = _cakePoolParams.poolId;
+        chef = _cakePoolParams.chef;
 
-        reward = _rewardToNativeRoute[0];
-        native = _rewardToNativeRoute[_rewardToNativeRoute.length - 1];
-        rewardToNativeRoute = _rewardToNativeRoute;
+        address[] memory _rewardToLp0Route = _cakePoolParams.rewardToLp0Route;
+        address[] memory _rewardToLp1Route = _cakePoolParams.rewardToLp1Route;
+
+        reward = _rewardToLp0Route[0];
 
         // setup lp routing
         lpToken0 = IPancakePair(stake).token0();

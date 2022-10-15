@@ -54,8 +54,10 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
     address _other = 0xF18Bb60E7Bd9BD65B61C57b9Dd89cfEb774274a1;
     address _whale = 0x14bA0D857C496C03A8c8D5Fcc6c92d30Df804775;
     address _busdWhale = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;
+    address _factory = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;
 
     CommonAddresses _commonAddresses;
+    CakePoolParams cakePoolParams;
 
     function setUp() public {
         ///@dev creating the routes
@@ -73,13 +75,16 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.startPrank(_user);
 
         ///@dev Initializing the vault with invalid strategy
-        vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay);
+        vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay, _factory);
 
         ///@dev Initializing the strategy
         _commonAddresses = CommonAddresses(address(vault), _router, _manager);
-        strategy = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
-        vault.init(IStrategy(address(strategy)));
+        cakePoolParams = CakePoolParams(_stake, _poolId, _chef, _rewardToLp0Route, _rewardToLp1Route);
+        strategy = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
         vm.stopPrank();
+
+        vm.prank(_factory);
+        vault.init(IStrategy(address(strategy)));
 
         ///@dev Transfering LP tokens from a whale to my accounts
         vm.startPrank(_whale);
@@ -298,7 +303,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
 
     function test_ProposeStratWithCorrectVault() public {
 
-        CakeLpStakingV1 newStrat = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
+        CakeLpStakingV1 newStrat = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
 
         StratCandidate memory currentStratCandidate = vault.getStratProposal();
         assertEq(currentStratCandidate.implementation, address(0));
@@ -318,7 +323,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
     function test_ProposeStratWithInCorrectVault() public {
 
         _commonAddresses = CommonAddresses(address(0), _router, _manager);
-        CakeLpStakingV1 newStrat = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
+        CakeLpStakingV1 newStrat = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
 
         vm.expectRevert("Proposal not valid for this Vault");
         vm.prank(_user);
@@ -328,14 +333,14 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
 
     function test_ProposeStratWithCorrectVaultButNotOwner() public {
 
-        CakeLpStakingV1 newStrat = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
+        CakeLpStakingV1 newStrat = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
 
         vm.expectRevert("Ownable: caller is not the owner");
         vault.proposeStrat(address(newStrat));
     }
 
     function test_UpgradeStratWithCorrectOwnerAndAfterDelay() public {
-        CakeLpStakingV1 newStrat = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
+        CakeLpStakingV1 newStrat = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
 
         StratCandidate memory currentStratCandidate = vault.getStratProposal();
         assertEq(currentStratCandidate.implementation, address(0));
@@ -364,7 +369,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
     }
 
     function test_UpgradeStratWithCorrectOwnerAndBeforeDelay() public {
-        CakeLpStakingV1 newStrat = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
+        CakeLpStakingV1 newStrat = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
 
         StratCandidate memory currentStratCandidate = vault.getStratProposal();
         assertEq(currentStratCandidate.implementation, address(0));
@@ -389,7 +394,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
     }
 
     function test_UpgradeStratWithInCorrectOwnerAndAfterDelay() public {
-        CakeLpStakingV1 newStrat = new CakeLpStakingV1(_stake, _poolId, _chef, _commonAddresses, _rewardToNativeRoute, _rewardToLp0Route, _rewardToLp1Route);
+        CakeLpStakingV1 newStrat = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
 
         StratCandidate memory currentStratCandidate = vault.getStratProposal();
         assertEq(currentStratCandidate.implementation, address(0));

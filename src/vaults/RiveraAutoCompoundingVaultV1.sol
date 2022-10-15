@@ -33,15 +33,15 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
     // The minimum time it has to pass before a strat candidate can be approved.
     uint256 public immutable approvalDelay;
 
-    // address public factory;
+    address public factory;
 
     event NewStratCandidate(address implementation);
     event UpgradeStrat(address implementation);
 
-    // modifier onlyFactory() {
-    //     require(msg.sender == factory, "!factory");
-    //     _;
-    // }
+    modifier onlyFactory() {
+        require(msg.sender == factory, "!factory");
+        _;
+    }
 
     /*
      * @dev Sets the value of {token} to the token that the vault will
@@ -56,17 +56,17 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
     constructor (
         string memory _name,
         string memory _symbol,
-        uint256 _approvalDelay
-        // address _factory
-    ) public ERC20(
+        uint256 _approvalDelay,
+        address _factory
+    ) ERC20(
         _name,
         _symbol
     ) {
         approvalDelay = _approvalDelay;
-        // factory = _factory;
+        factory = _factory;
     }
 
-    function init(IStrategy _strategy) public initializer {
+    function init(IStrategy _strategy) public initializer onlyFactory {
         strategy = _strategy;
     }
 
