@@ -51,4 +51,24 @@ contract PancakeVaultFactoryV1 is IRiveraAutoCompoundingVaultFactoryV1, Ownable 
         emit VaultCreated(msg.sender, createVaultParams.lpPool, createVaultParams.poolId, vaultAddress);
     }
 
+    function getVaultForCurrentUser(address lpPool, uint256 poolId) public view returns (address) {
+        return getVault[msg.sender][lpPool][poolId];
+    }
+
+    function setChef(address _chef) external onlyOwner {
+        chef = _chef;
+    }
+
+    function setRouter(address _router) external onlyOwner {
+        router = _router;
+    }
+
+    function setApprovalDelay(uint256 _approvalDelay) external onlyOwner {
+        approvalDelay = _approvalDelay;
+    }
+
+    function setPancakeFactory(address _pancakeFactory) external onlyOwner {
+        pancakeFactory = _pancakeFactory;
+    }
+
 }

@@ -23,7 +23,6 @@ contract CakeLpStakingV1 is AbstractStrategy {
     using SafeERC20 for IERC20;
 
     // Tokens used
-    address public native;
     address public reward;
     address public stake;
     address public lpToken0;
@@ -37,7 +36,6 @@ contract CakeLpStakingV1 is AbstractStrategy {
     string public pendingRewardsFunctionName;
 
     // Routes
-    address[] public rewardToNativeRoute;
     address[] public rewardToLp0Route;
     address[] public rewardToLp1Route;
 
@@ -273,10 +271,6 @@ contract CakeLpStakingV1 is AbstractStrategy {
         IERC20(reward).safeApprove(router, 0);
         IERC20(lpToken0).safeApprove(router, 0);
         IERC20(lpToken1).safeApprove(router, 0);
-    }
-
-    function rewardToNative() external view returns (address[] memory) {
-        return rewardToNativeRoute;
     }
 
     function rewardToLp0() external view returns (address[] memory) {
