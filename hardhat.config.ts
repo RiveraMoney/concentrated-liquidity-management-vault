@@ -23,7 +23,15 @@ const config: HardhatUserConfig = {
       optimizer: {
         enabled: true,
         runs: 200,
+
       },
+    },
+  },
+  defaultNetwork: "localhost",
+  networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+      chainId: 1337
     },
   },
   paths: {
