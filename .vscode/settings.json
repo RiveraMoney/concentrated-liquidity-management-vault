@@ -1,5 +1,7 @@
 {
     "solidity.packageDefaultDependenciesDirectory": "node_modules",
     "solidity.formatter": "none",
-    "solidity.remappings": []
+    "solidity.remappings": [],
+    "slither.solcPath": "",
+    "slither.hiddenDetectors": []
 }

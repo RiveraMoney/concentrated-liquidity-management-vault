@@ -37,6 +37,8 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
 
     event NewStratCandidate(address implementation);
     event UpgradeStrat(address implementation);
+    event Deposit(address indexed user, uint256 amount, uint256 tvl);
+    event Withdraw(address indexed user, uint256 amount, uint256 tvl);
 
     modifier onlyFactory() {
         require(msg.sender == factory, "!factory");
@@ -127,6 +129,7 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
             shares = (_amount.mul(totalSupply())).div(_pool); //If there are funds already then the user's share needs to be scaled
         }
         _mint(msg.sender, shares);
+        emit Deposit(msg.sender, _amount, balance());
     }
 
     /**
@@ -167,6 +170,7 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
         }
 
         stake().safeTransfer(msg.sender, r); //Finally we transfer r to the user
+        emit Withdraw(msg.sender, r, balance());
     }
 
     /** 

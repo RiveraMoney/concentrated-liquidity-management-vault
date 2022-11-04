@@ -45,6 +45,7 @@ contract PancakeVaultFactoryV1 is IRiveraAutoCompoundingVaultFactoryV1, Ownable 
         CommonAddresses memory commonAddresses = CommonAddresses(vaultAddress, router, owner());
         CakePoolParams memory cakePoolParams = CakePoolParams(createVaultParams.lpPool, createVaultParams.poolId, chef, createVaultParams.rewardToLp0Route, createVaultParams.rewardToLp1Route);
         CakeLpStakingV1 strategy = new CakeLpStakingV1(cakePoolParams, commonAddresses);
+        //TODO: Change ownership of strategy and vault to user
         vault.init(IStrategy(address(strategy)));
         getVault[msg.sender][createVaultParams.lpPool][createVaultParams.poolId] = vaultAddress;
         allVaults.push(vaultAddress);
