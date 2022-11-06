@@ -8,9 +8,10 @@ dotenv.config();
 
 const PRIVATE_KEY1 = process.env.PRIVATE_KEY1;
 const PRIVATE_KEY2 = process.env.PRIVATE_KEY2;
+const BSC_SCAN_API_KEY = process.env.BSC_SCAN_API_KEY;
 
-if (!PRIVATE_KEY1 || !PRIVATE_KEY2) {
-  throw new Error("PRIVATE_KEY1 and PRIVATE_KEY2 must be set in .env file.")
+if (!PRIVATE_KEY1 || !PRIVATE_KEY2 || !BSC_SCAN_API_KEY) {
+  throw new Error("PRIVATE_KEY1, PRIVATE_KEY2 and BSC_SCAN_API_KEY must be set in .env file.");
 }
 
 import example from "./tasks/example";
@@ -31,8 +32,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
-        details: { yul: false },
+        runs: 200
       },
     },
   },
@@ -48,6 +48,9 @@ const config: HardhatUserConfig = {
       // allowUnlimitedContractSize: true,
       accounts: [PRIVATE_KEY1, PRIVATE_KEY2]
     }
+  },
+  etherscan: {
+    apiKey: BSC_SCAN_API_KEY
   },
   paths: {
     sources: "./src", // Use ./src rather than ./contracts as Hardhat expects

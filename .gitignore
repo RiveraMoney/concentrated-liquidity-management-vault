@@ -9,5 +9,7 @@ node_modules/
 cache_hardhat/
 artifacts/
 
+.env
+
 #Hardhat plugin files
 typechain-types/
