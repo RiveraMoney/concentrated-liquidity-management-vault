@@ -25,4 +25,5 @@ interface IStrategy {
     function poolId() external view returns (uint256);
     function rewardToLp0Route(uint256) external view returns (address);
     function rewardToLp1Route(uint256) external view returns (address);
+    function owner() external view returns (address);
 }

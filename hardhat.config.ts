@@ -3,6 +3,15 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-preprocessor";
 import { HardhatUserConfig, task } from "hardhat/config";
+import * as dotenv from "dotenv";
+dotenv.config();
+
+const PRIVATE_KEY1 = process.env.PRIVATE_KEY1;
+const PRIVATE_KEY2 = process.env.PRIVATE_KEY2;
+
+if (!PRIVATE_KEY1 || !PRIVATE_KEY2) {
+  throw new Error("PRIVATE_KEY1 and PRIVATE_KEY2 must be set in .env file.")
+}
 
 import example from "./tasks/example";
 
@@ -23,16 +32,22 @@ const config: HardhatUserConfig = {
       optimizer: {
         enabled: true,
         runs: 200,
-
+        details: { yul: false },
       },
     },
   },
   defaultNetwork: "localhost",
   networks: {
     hardhat: {
-      allowUnlimitedContractSize: true,
+      // allowUnlimitedContractSize: true,
       chainId: 1337
     },
+    bscTest: {
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
+      chainId: 97,
+      // allowUnlimitedContractSize: true,
+      accounts: [PRIVATE_KEY1, PRIVATE_KEY2]
+    }
   },
   paths: {
     sources: "./src", // Use ./src rather than ./contracts as Hardhat expects

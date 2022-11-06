@@ -31,6 +31,7 @@
     "typescript": "^4.6.4"
   },
   "dependencies": {
+    "dotenv": "^16.0.3",
     "pancakeswap-peripheral": "^1.1.0-beta.0"
   }
 }

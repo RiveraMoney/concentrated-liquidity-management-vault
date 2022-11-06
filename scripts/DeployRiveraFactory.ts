@@ -9,6 +9,7 @@ const stratUpdateDelay = 21600;
 //To keep the contract deployment address same always restart the blockchain before deploying, as the deployed contract address depends on the nonce
 async function main() {
     const PancakeVaultFactoryV1 = await ethers.getContractFactory("PancakeVaultFactoryV1");
+    console.log(PancakeVaultFactoryV1);
     const pancakeVaultFactoryV1 = await PancakeVaultFactoryV1.deploy(_chef, _router, stratUpdateDelay, _pancakeFactory);
 
     await pancakeVaultFactoryV1.deployed();

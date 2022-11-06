@@ -33,17 +33,10 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
     // The minimum time it has to pass before a strat candidate can be approved.
     uint256 public immutable approvalDelay;
 
-    address public factory;
-
     event NewStratCandidate(address implementation);
     event UpgradeStrat(address implementation);
     event Deposit(address indexed user, uint256 amount, uint256 tvl);
     event Withdraw(address indexed user, uint256 amount, uint256 tvl);
-
-    modifier onlyFactory() {
-        require(msg.sender == factory, "!factory");
-        _;
-    }
 
     /*
      * @dev Sets the value of {token} to the token that the vault will
@@ -58,17 +51,15 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
     constructor (
         string memory _name,
         string memory _symbol,
-        uint256 _approvalDelay,
-        address _factory
+        uint256 _approvalDelay
     ) ERC20(
         _name,
         _symbol
     ) {
         approvalDelay = _approvalDelay;
-        factory = _factory;
     }
 
-    function init(IStrategy _strategy) public initializer onlyFactory {
+    function init(IStrategy _strategy) public initializer {
         strategy = _strategy;
     }
 
@@ -114,7 +105,8 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
      * @dev The entrypoint of funds into the system. People deposit with this function
      * into the vault. The vault is then in charge of sending funds into the strategy.
      */
-    function deposit(uint _amount) public nonReentrant onlyOwner {
+    function deposit(uint _amount) public nonReentrant {
+        _checkOwner();
         strategy.beforeDeposit();
 
         uint256 _pool = balance(); //Entire balance of the vault
@@ -136,7 +128,8 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
      * @dev Function to send funds into the strategy and put them to work. It's primarily called
      * by the vault's deposit() function.
      */
-    function earn() public onlyOwner { //Transfers all available funds to the strategy and deploys it to AAVE 
+    function earn() public { //Transfers all available funds to the strategy and deploys it to AAVE 
+        _checkOwner();
         uint _bal = available();
         stake().safeTransfer(address(strategy), _bal);
         strategy.deposit();
@@ -177,8 +170,9 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
      * @dev Sets the candidate for the new strat to use with this vault.
      * @param _implementation The address of the candidate strategy.  
      */
-    function proposeStrat(address _implementation) public onlyOwner {
-        require(address(this) == IStrategy(_implementation).vault(), "Proposal not valid for this Vault"); //Stratey also holds the address of the vault hence equality should hold
+    function proposeStrat(address _implementation) public {
+        _checkOwner();
+        require(address(this) == IStrategy(_implementation).vault(), "!proposal"); //Stratey also holds the address of the vault hence equality should hold
         stratCandidate = StratCandidate({
             implementation: _implementation,
             proposedTime: block.timestamp
@@ -197,9 +191,10 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
      * happening in +100 years for safety. 
      */
 
-    function upgradeStrat() public onlyOwner { //Only owner can update strategy
-        require(stratCandidate.implementation != address(0), "There is no candidate"); //Strategy implementation has to be set before calling the method
-        require(stratCandidate.proposedTime.add(approvalDelay) < block.timestamp, "Delay has not passed"); //Approval delay should have been passed since proposal time
+    function upgradeStrat() public { //Only owner can update strategy
+        _checkOwner();
+        require(stratCandidate.implementation != address(0), "!candidate"); //Strategy implementation has to be set before calling the method
+        require(stratCandidate.proposedTime.add(approvalDelay) < block.timestamp, "!delay"); //Approval delay should have been passed since proposal time
 
         emit UpgradeStrat(stratCandidate.implementation);
 
@@ -215,7 +210,8 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
      * @dev Rescues random funds stuck that the strat can't handle.
      * @param _token address of the token to rescue.
      */
-    function inCaseTokensGetStuck(address _token) external onlyOwner {
+    function inCaseTokensGetStuck(address _token) external {
+        _checkOwner();
         require(_token != address(stake()), "!token"); //Token must not be equal to address of stake currency
 
         uint256 amount = IERC20(_token).balanceOf(address(this)); //Just finding the balance of this vault contract address in the the passed token and transfers

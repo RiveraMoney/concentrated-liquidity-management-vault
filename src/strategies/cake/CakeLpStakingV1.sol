@@ -68,22 +68,22 @@ contract CakeLpStakingV1 is AbstractStrategy {
         lpToken0 = IPancakePair(stake).token0();
         require(
             _rewardToLp0Route[0] == reward,
-            "rewardToLp0Route[0] != reward"
+            "!rewardToLp0Route"
         );
         require(
             _rewardToLp0Route[_rewardToLp0Route.length - 1] == lpToken0,
-            "rewardToLp0Route[last] != lpToken0"
+            "!rewardToLp0Route"
         );
         rewardToLp0Route = _rewardToLp0Route;
 
         lpToken1 = IPancakePair(stake).token1();
         require(
             _rewardToLp1Route[0] == reward,
-            "rewardToLp1Route[0] != reward"
+            "!rewardToLp1Route"
         );
         require(
             _rewardToLp1Route[_rewardToLp1Route.length - 1] == lpToken1,
-            "rewardToLp1Route[last] != lpToken1"
+            "!rewardToLp1Route"
         );
         rewardToLp1Route = _rewardToLp1Route;
 
@@ -91,7 +91,8 @@ contract CakeLpStakingV1 is AbstractStrategy {
     }
 
     // puts the funds to work
-    function deposit() public onlyVault {
+    function deposit() public {
+        onlyVault();
         _deposit();
     }
 
@@ -105,7 +106,8 @@ contract CakeLpStakingV1 is AbstractStrategy {
         }
     }
 
-    function withdraw(uint256 _amount) external onlyVault {
+    function withdraw(uint256 _amount) external {
+        onlyVault();
         //Pretty Straight forward almost same as AAVE strategy
         uint256 stakeBal = IERC20(stake).balanceOf(address(this));
 
@@ -129,7 +131,8 @@ contract CakeLpStakingV1 is AbstractStrategy {
         _harvest();
     }
 
-    function managerHarvest() external onlyManager {
+    function managerHarvest() external {
+        onlyManager();
         _harvest();
     }
 
@@ -207,7 +210,8 @@ contract CakeLpStakingV1 is AbstractStrategy {
 
     function setPendingRewardsFunctionName(
         string calldata _pendingRewardsFunctionName
-    ) external onlyManager {
+    ) external {
+        onlyManager();
         //Interesting! function name that has to be used itself can be treated as an arguement
         pendingRewardsFunctionName = _pendingRewardsFunctionName;
     }
@@ -227,8 +231,8 @@ contract CakeLpStakingV1 is AbstractStrategy {
     }
 
     // called as part of strat migration. Sends all the available funds back to the vault.
-    function retireStrat() external onlyVault {
-
+    function retireStrat() external {
+        onlyVault();
         IMasterChef(chef).emergencyWithdraw(poolId);
 
         uint256 stakeBal = IERC20(stake).balanceOf(address(this));
@@ -236,18 +240,21 @@ contract CakeLpStakingV1 is AbstractStrategy {
     }
 
     // pauses deposits and withdraws all funds from third party systems.
-    function panic() public onlyManager {
+    function panic() public {
+        onlyManager();
         pause();
         IMasterChef(chef).emergencyWithdraw(poolId);
     }
 
-    function pause() public onlyManager {
+    function pause() public {
+        onlyManager();
         _pause();
 
         _removeAllowances();
     }
 
-    function unpause() external onlyManager {
+    function unpause() external {
+        onlyManager();
         _unpause();
 
         _giveAllowances();

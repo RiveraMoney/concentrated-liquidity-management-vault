@@ -68,7 +68,7 @@ contract CakeLpStakingInitializationV1Test is Test {
         vm.startPrank(_user);
 
         ///@dev Initializing the vault with invalid strategy
-        vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay, _factory);
+        vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay);
 
         ///@dev Initializing the strategy
         CommonAddresses memory _commonAddresses = CommonAddresses(address(vault), _router, _manager);
@@ -92,17 +92,4 @@ contract CakeLpStakingInitializationV1Test is Test {
         assertEq(address(vault.strategy()), address(strategy));
     }
 
-    function test_InitializationNotFromFactoryContractFirstTime() public {
-        vm.expectRevert("!factory");
-        vault.init(IStrategy(address(strategy)));
-    }
-
-    function test_InitializationFromFactoryContractSecondTime() public {
-        vm.prank(_factory);
-        vault.init(IStrategy(address(strategy)));
-        assertEq(address(vault.strategy()), address(strategy));
-
-        vm.expectRevert("Initializable: contract is already initialized");
-        vault.init(IStrategy(address(strategy)));
-    }
 }

@@ -105,13 +105,13 @@ contract PancakeVaultFactoryV1Test is Test {
         vm.prank(_busdWhale);
         IERC20(_busd).transfer(_user, 1e22);
 
-        factory = new PancakeVaultFactoryV1(_chef, _router, stratUpdateDelay, _pancakeFactory);
+        factory = new PancakeVaultFactoryV1(_chef, _router, _pancakeFactory);
 
     }
 
     function test_CreateVaultWithCorrectParameters() public {
         vm.prank(_user);
-        CreateVaultParams memory createVaultParams = CreateVaultParams(_stake, _poolId, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
+        CreateVaultParams memory createVaultParams = CreateVaultParams(_poolId, stratUpdateDelay, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
         vm.expectEmit(true, true, true, false);
         emit VaultCreated(_user, _stake, _poolId, address(0));
         address vaultAddress = factory.createVault(createVaultParams);
@@ -124,9 +124,9 @@ contract PancakeVaultFactoryV1Test is Test {
         RiveraAutoCompoundingVaultV1 vault = RiveraAutoCompoundingVaultV1(vaultAddress);
         assertEq(address(vault.stake()), _stake);
         assertEq(vault.approvalDelay(), stratUpdateDelay);
-        assertEq(vault.factory(), address(factory));
         assertEq(vault.name(), rivTokenName);
         assertEq(vault.symbol(), rivTokenSymbol);
+        assertEq(vault.owner(), _user);
         assertTrue(Address.isContract(address(vault.strategy())));
 
         assertEq(vault.strategy().poolId(), _poolId);
@@ -139,12 +139,13 @@ contract PancakeVaultFactoryV1Test is Test {
         assertEq(vault.strategy().rewardToLp0Route(2), _rewardToLp0Route[2]);
         assertEq(vault.strategy().rewardToLp1Route(0), _rewardToLp1Route[0]);
         assertEq(vault.strategy().rewardToLp1Route(1), _rewardToLp1Route[1]);
+        assertEq(vault.strategy().owner(), _user);
 
     }
 
     function test_CreateVaultRevertIfVaultAlreadyExists() public {
         vm.prank(_user);
-        CreateVaultParams memory createVaultParams = CreateVaultParams(_stake, _poolId, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
+        CreateVaultParams memory createVaultParams = CreateVaultParams(_poolId, stratUpdateDelay, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
         vm.expectEmit(true, true, true, false);
         emit VaultCreated(_user, _stake, _poolId, address(0));
         address vaultAddress = factory.createVault(createVaultParams);
@@ -157,7 +158,6 @@ contract PancakeVaultFactoryV1Test is Test {
         RiveraAutoCompoundingVaultV1 vault = RiveraAutoCompoundingVaultV1(vaultAddress);
         assertEq(address(vault.stake()), _stake);
         assertEq(vault.approvalDelay(), stratUpdateDelay);
-        assertEq(vault.factory(), address(factory));
         assertEq(vault.name(), rivTokenName);
         assertEq(vault.symbol(), rivTokenSymbol);
         assertTrue(Address.isContract(address(vault.strategy())));
@@ -174,23 +174,15 @@ contract PancakeVaultFactoryV1Test is Test {
         assertEq(vault.strategy().rewardToLp1Route(1), _rewardToLp1Route[1]);
 
         vm.prank(_user);
-        vm.expectRevert('RiveraPanCakeVaultFactoryV1: VAULT_EXISTS');
-        factory.createVault(createVaultParams);
-
-    }
-
-    function test_CreateVaultRevertsWhenInvalidLpPoolAddressGiven() public {
-        vm.prank(_user);
-        CreateVaultParams memory createVaultParams = CreateVaultParams(_spin, _poolId, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
-        vm.expectRevert('RiveraPanCakeVaultFactoryV1: INVALID_POOL');
+        vm.expectRevert('VAULT_EXISTS');
         factory.createVault(createVaultParams);
 
     }
 
     function test_CreateVaultRevertsWhenInvalidLpPoolIdGiven() public {
         vm.prank(_user);
-        CreateVaultParams memory createVaultParams = CreateVaultParams(_stake, 200, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
-        vm.expectRevert('RiveraPanCakeVaultFactoryV1: INVALID_POOL_ID');
+        CreateVaultParams memory createVaultParams = CreateVaultParams(200, stratUpdateDelay, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
+        vm.expectRevert('INVALID_POOL_ID');
         factory.createVault(createVaultParams);
 
     }
@@ -198,16 +190,16 @@ contract PancakeVaultFactoryV1Test is Test {
     function test_CreateVaultRevertsWhenInvalidLpPoolToken0Given() public {
         _rewardToLp0Route[2] = address(0);
         vm.prank(_user);
-        CreateVaultParams memory createVaultParams = CreateVaultParams(_stake, _poolId, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
+        CreateVaultParams memory createVaultParams = CreateVaultParams(_poolId, stratUpdateDelay, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
         // vm.expectRevert('RiveraPanCakeVaultFactoryV1: LP_TOKEN0_ZERO_ADDRESS'); Reverts with INVALID pool error message because there is no pool with zero address in pancake swap
-        vm.expectRevert('RiveraPanCakeVaultFactoryV1: INVALID_POOL');
+        vm.expectRevert('LP_TOKEN0_ZERO_ADDRESS');
         factory.createVault(createVaultParams);
 
     }
 
     function test_CreateVaultShouldNotBeInitializableAfterDeployment() public {
         vm.prank(_user);
-        CreateVaultParams memory createVaultParams = CreateVaultParams(_stake, _poolId, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
+        CreateVaultParams memory createVaultParams = CreateVaultParams(_poolId, stratUpdateDelay, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
         vm.expectEmit(true, true, true, false);
         emit VaultCreated(_user, _stake, _poolId, address(0));
         address vaultAddress = factory.createVault(createVaultParams);
@@ -226,7 +218,7 @@ contract PancakeVaultFactoryV1Test is Test {
 
     function test_OtherUserCreateVaultWithSameParameters() public {
         vm.prank(_user);
-        CreateVaultParams memory createVaultParams = CreateVaultParams(_stake, _poolId, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
+        CreateVaultParams memory createVaultParams = CreateVaultParams(_poolId, stratUpdateDelay, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
         vm.expectEmit(true, true, true, false);
         emit VaultCreated(_user, _stake, _poolId, address(0));
         address vaultAddress = factory.createVault(createVaultParams);
@@ -239,7 +231,6 @@ contract PancakeVaultFactoryV1Test is Test {
         RiveraAutoCompoundingVaultV1 vault = RiveraAutoCompoundingVaultV1(vaultAddress);
         assertEq(address(vault.stake()), _stake);
         assertEq(vault.approvalDelay(), stratUpdateDelay);
-        assertEq(vault.factory(), address(factory));
         assertEq(vault.name(), rivTokenName);
         assertEq(vault.symbol(), rivTokenSymbol);
         assertTrue(Address.isContract(address(vault.strategy())));
@@ -268,7 +259,6 @@ contract PancakeVaultFactoryV1Test is Test {
         RiveraAutoCompoundingVaultV1 otherVault = RiveraAutoCompoundingVaultV1(otherVaultAddress);
         assertEq(address(otherVault.stake()), _stake);
         assertEq(otherVault.approvalDelay(), stratUpdateDelay);
-        assertEq(otherVault.factory(), address(factory));
         assertEq(otherVault.name(), rivTokenName);
         assertEq(otherVault.symbol(), rivTokenSymbol);
         assertTrue(Address.isContract(address(otherVault.strategy())));
@@ -290,7 +280,7 @@ contract PancakeVaultFactoryV1Test is Test {
 
     function test_UserShouldBeAbleToCreateAnotherVault() public {
         vm.prank(_user);
-        CreateVaultParams memory createVaultParams = CreateVaultParams(_stake, _poolId, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
+        CreateVaultParams memory createVaultParams = CreateVaultParams(_poolId, stratUpdateDelay, _rewardToLp0Route, _rewardToLp1Route, rivTokenName, rivTokenSymbol);
         vm.expectEmit(true, true, true, false);
         emit VaultCreated(_user, _stake, _poolId, address(0));
         address vaultAddress = factory.createVault(createVaultParams);
@@ -303,7 +293,6 @@ contract PancakeVaultFactoryV1Test is Test {
         RiveraAutoCompoundingVaultV1 vault = RiveraAutoCompoundingVaultV1(vaultAddress);
         assertEq(address(vault.stake()), _stake);
         assertEq(vault.approvalDelay(), stratUpdateDelay);
-        assertEq(vault.factory(), address(factory));
         assertEq(vault.name(), rivTokenName);
         assertEq(vault.symbol(), rivTokenSymbol);
         assertTrue(Address.isContract(address(vault.strategy())));
@@ -332,7 +321,6 @@ contract PancakeVaultFactoryV1Test is Test {
         RiveraAutoCompoundingVaultV1 otherVault = RiveraAutoCompoundingVaultV1(otherVaultAddress);
         assertEq(address(otherVault.stake()), _stake);
         assertEq(otherVault.approvalDelay(), stratUpdateDelay);
-        assertEq(otherVault.factory(), address(factory));
         assertEq(otherVault.name(), rivTokenName);
         assertEq(otherVault.symbol(), rivTokenSymbol);
         assertTrue(Address.isContract(address(otherVault.strategy())));
@@ -351,7 +339,7 @@ contract PancakeVaultFactoryV1Test is Test {
         assertTrue(vaultAddress != otherVaultAddress);
 
         vm.prank(_user);
-        createVaultParams = CreateVaultParams(_stake2, _poolId2, _rewardToLp0Route2, _rewardToLp1Route2, rivTokenName2, rivTokenSymbol2);
+        createVaultParams = CreateVaultParams(_poolId2, stratUpdateDelay, _rewardToLp0Route2, _rewardToLp1Route2, rivTokenName2, rivTokenSymbol2);
         vm.expectEmit(true, true, true, false);
         emit VaultCreated(_user, _stake2, _poolId2, address(0));
         address vault2Address = factory.createVault(createVaultParams);
@@ -364,7 +352,6 @@ contract PancakeVaultFactoryV1Test is Test {
         RiveraAutoCompoundingVaultV1 vault2 = RiveraAutoCompoundingVaultV1(vault2Address);
         assertEq(address(vault2.stake()), _stake2);
         assertEq(vault2.approvalDelay(), stratUpdateDelay);
-        assertEq(vault2.factory(), address(factory));
         assertEq(vault2.name(), rivTokenName2);
         assertEq(vault2.symbol(), rivTokenSymbol2);
         assertTrue(Address.isContract(address(vault2.strategy())));

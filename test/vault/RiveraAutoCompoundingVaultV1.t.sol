@@ -75,7 +75,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.startPrank(_user);
 
         ///@dev Initializing the vault with invalid strategy
-        vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay, _factory);
+        vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay);
 
         ///@dev Initializing the strategy
         _commonAddresses = CommonAddresses(address(vault), _router, _manager);
@@ -325,7 +325,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         _commonAddresses = CommonAddresses(address(0), _router, _manager);
         CakeLpStakingV1 newStrat = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
 
-        vm.expectRevert("Proposal not valid for this Vault");
+        vm.expectRevert("!proposal");
         vm.prank(_user);
         vault.proposeStrat(address(newStrat));
 
@@ -388,7 +388,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         assertEq(address(vault.strategy()), address(strategy));
 
         vm.prank(_user);
-        vm.expectRevert("Delay has not passed");
+        vm.expectRevert("!delay");
         vault.upgradeStrat();
 
     }
@@ -422,7 +422,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
     function test_UpgradeStratWithInCorrectImplementationAfterDelay() public {
 
         vm.prank(_user);
-        vm.expectRevert("There is no candidate");
+        vm.expectRevert("!candidate");
         vault.upgradeStrat();
 
     }
