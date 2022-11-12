@@ -39,15 +39,23 @@ const config: HardhatUserConfig = {
   defaultNetwork: "localhost",
   networks: {
     hardhat: {
-      // allowUnlimitedContractSize: true,
       chainId: 1337
     },
     bscTest: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
       chainId: 97,
-      // allowUnlimitedContractSize: true,
       accounts: [PRIVATE_KEY1, PRIVATE_KEY2]
-    }
+    },
+    bsc: {
+      url: "https://bsc-dataseed1.binance.org",
+      chainId: 56,
+      accounts: [PRIVATE_KEY1, PRIVATE_KEY2]
+    },
+    localBscFork: {
+      url: "http://127.0.0.1:8545/",
+      chainId: 1337,
+      accounts: [PRIVATE_KEY1, PRIVATE_KEY2]
+    },
   },
   etherscan: {
     apiKey: BSC_SCAN_API_KEY
