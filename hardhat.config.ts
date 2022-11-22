@@ -36,10 +36,20 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  defaultNetwork: "localhost",
+  defaultNetwork: "bscTest",
   networks: {
     hardhat: {
-      chainId: 1337
+      chainId: 1337,
+      accounts: [
+        {
+          privateKey: `0x${PRIVATE_KEY1}`,
+          balance: "10000000000000000000000"
+        },
+        {
+          privateKey: `0x${PRIVATE_KEY2}`,
+          balance: "10000000000000000000000"
+        }
+      ]
     },
     bscTest: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545/",

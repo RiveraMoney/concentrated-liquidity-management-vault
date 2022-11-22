@@ -24,7 +24,7 @@ async function main() {
 
     fs.writeFile('contractAddress.json', json, 'utf8', callback);
 
-    console.log("Sovereignity contract deployed to:", pancakeVaultFactoryV1.address);
+    console.log("Rivera Factory contract deployed to:", pancakeVaultFactoryV1.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
