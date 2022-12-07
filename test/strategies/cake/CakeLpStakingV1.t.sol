@@ -169,9 +169,10 @@ contract CakeLpStakingV1Test is Test {
 
         vm.roll(block.number + 100);
 
+        vm.prank(_manager);
         vm.expectEmit(true, false, false, false);
         emit StratHarvest(address(this), 0, 0); //We don't try to match the second and third parameter of the event. They're result of Pancake swap contracts, we trust the protocol to be correct.
-        strategy.harvest();
+        strategy.managerHarvest();
         
         uint256 stratPoolBalanceAfter = strategy.balanceOfPool();
         assertGt(stratPoolBalanceAfter, stratPoolBalanceBefore);
@@ -191,7 +192,7 @@ contract CakeLpStakingV1Test is Test {
         vm.prank(_manager);
         strategy.pause();
         vm.expectRevert("Pausable: paused");
-        strategy.harvest();
+        strategy.managerHarvest();
     }
 
     ///@notice tests for manager harvest functions

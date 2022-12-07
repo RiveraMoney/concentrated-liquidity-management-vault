@@ -160,8 +160,9 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.prank(_user);
         vault.deposit(1e18);
 
+        vm.prank(_manager);
         vm.roll(block.number + 100);
-        strategy.harvest();
+        strategy.managerHarvest();
 
         uint256 userStakeBalanceBefore = IERC20(_stake).balanceOf(_user);
         uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
@@ -205,8 +206,9 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
 
         uint256 pricePerFullShareBefore = vault.getPricePerFullShare();
 
+        vm.prank(_manager);
         vm.roll(block.number + 100);
-        strategy.harvest();
+        strategy.managerHarvest();
 
         uint256 pricePerFullShareAfter = vault.getPricePerFullShare();
 
@@ -247,8 +249,9 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.prank(_user);
         vault.deposit(2e18);
 
+        vm.prank(_manager);
         vm.roll(block.number + 100);
-        strategy.harvest();
+        strategy.managerHarvest();
 
         uint256 userShareBefore = vault.balanceOf(_user);
         assertEq(userShareBefore, 2e18);
@@ -271,8 +274,9 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.prank(_user);
         vault.deposit(2e18);
 
+        vm.prank(_manager);
         vm.roll(block.number + 100);
-        strategy.harvest();
+        strategy.managerHarvest();
 
         vm.expectRevert("Ownable: caller is not the owner");
         vault.withdraw(1e18);
@@ -282,8 +286,9 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vm.prank(_user);
         vault.deposit(2e18);
 
+        vm.prank(_manager);
         vm.roll(block.number + 100);
-        strategy.harvest();
+        strategy.managerHarvest();
 
         uint256 userShareBefore = vault.balanceOf(_user);
         assertEq(userShareBefore, 2e18);
