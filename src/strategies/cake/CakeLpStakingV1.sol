@@ -127,10 +127,6 @@ contract CakeLpStakingV1 is AbstractStrategy {
 
     function beforeDeposit() external virtual {}
 
-    function harvest() external virtual {
-        _harvest();
-    }
-
     function managerHarvest() external {
         onlyManager();
         _harvest();

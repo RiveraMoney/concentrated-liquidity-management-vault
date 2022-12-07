@@ -47,4 +47,8 @@ contract PancakeVaultFactoryV1 is IRiveraAutoCompoundingVaultFactoryV1 {
         emit VaultCreated(msg.sender, lpPool, createVaultParams.poolId, vaultAddress);
     }
 
+    function listAllVaults() external view returns (address[] memory) {
+        return allVaults;
+    }
+
 }
