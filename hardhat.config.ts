@@ -15,6 +15,7 @@ if (!PRIVATE_KEY1 || !PRIVATE_KEY2 || !BSC_SCAN_API_KEY) {
 }
 
 import example from "./tasks/example";
+import transferMeTokens from "./tasks/TransferMeTokens";
 
 function getRemappings() {
   return fs
@@ -25,6 +26,9 @@ function getRemappings() {
 }
 
 task("example", "Example task").setAction(example);
+task("TransferMeTokens", "Task to transfer tokens from a whale to you").addParam("tokenwhale", "Whale who has the token")
+  .addParam("token", "Address of the tokens you want").addParam("amount", "Amount of tokens you want (In full 18 decimals format)")
+  .setAction(transferMeTokens);
 
 const config: HardhatUserConfig = {
   solidity: {
