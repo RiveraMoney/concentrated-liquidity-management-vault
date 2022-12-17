@@ -8,9 +8,10 @@ dotenv.config();
 
 const PRIVATE_KEY1 = process.env.PRIVATE_KEY1;
 const PRIVATE_KEY2 = process.env.PRIVATE_KEY2;
+const PRIVATE_KEY3 = process.env.PRIVATE_KEY3;
 const BSC_SCAN_API_KEY = process.env.BSC_SCAN_API_KEY;
 
-if (!PRIVATE_KEY1 || !PRIVATE_KEY2 || !BSC_SCAN_API_KEY) {
+if (!PRIVATE_KEY1 || !PRIVATE_KEY2 || !PRIVATE_KEY3 || !BSC_SCAN_API_KEY) {
   throw new Error("PRIVATE_KEY1, PRIVATE_KEY2 and BSC_SCAN_API_KEY must be set in .env file.");
 }
 
@@ -52,6 +53,10 @@ const config: HardhatUserConfig = {
         {
           privateKey: `0x${PRIVATE_KEY2}`,
           balance: "10000000000000000000000"
+        },
+        {
+          privateKey: `0x${PRIVATE_KEY3}`,
+          balance: "10000000000000000000000"
         }
       ]
     },
@@ -69,7 +74,7 @@ const config: HardhatUserConfig = {
       url: "http://127.0.0.1:8545/",
       chainId: 56,
       timeout: 100_000,
-      // accounts: [PRIVATE_KEY1, PRIVATE_KEY2]
+      // accounts: [PRIVATE_KEY1, PRIVATE_KEY2, PRIVATE_KEY3]
     },
   },
   etherscan: {

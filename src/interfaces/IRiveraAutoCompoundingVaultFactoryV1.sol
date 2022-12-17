@@ -12,7 +12,6 @@ struct CreateVaultParams {
 interface IRiveraAutoCompoundingVaultFactoryV1 {
     event VaultCreated(address user, address lpPool, uint256 indexed poolId, address vault);
 
-    function getVault(address user, address lpPool, uint256 poolId) external view returns (address vault);
     function allVaults(uint) external view returns (address vault);
     function createVault(CreateVaultParams memory createVaultParams) external returns (address vault);
 

@@ -4,8 +4,8 @@ var fs = require('fs');
 import { default as vaultArtifact } from "../artifacts/src/vaults/RiveraAutoCompoundingVaultV1.sol/RiveraAutoCompoundingVaultV1.json";
 const vaultAbi = vaultArtifact.abi;
 
-const _FACTORY_CONTRACT_DEPLOYMENT_BLOCK = 23807246;    //Block at which the Rivera factory contract was deployed. It only makes sense to query for events from this block
-const _common_deposit_amount = "10000000000000000000";
+const _FACTORY_CONTRACT_DEPLOYMENT_BLOCK = 23979886;    //Block at which the Rivera factory contract was deployed. It only makes sense to query for events from this block
+const _common_deposit_amount = "500000000000000000000";
 
 async function getVaultCreatedEventsFromFactory(factoryContract: ethers.Contract) {
     const vaultsFilter = factoryContract.filters.VaultCreated();
@@ -27,7 +27,6 @@ async function main() {
     // const cakeBnb = ERC20.attach("0x0eD7e52944161450477ee417DE9Cd3a859b14fD0");
     // const cakeBusd = ERC20.attach("0x804678fa97d91B974ec2af3c843270886528a9E6");
     // const cakeUsdt = ERC20.attach("0xA39Af17CE4a8eb807E076805Da1e2B8EA7D0755b");
-
     const [user1, user2] = await ethers.getSigners();
 
     const vaultCreatedEvents = await getVaultCreatedEventsFromFactory(pancakeVaultFactoryV1);
@@ -51,12 +50,14 @@ async function main() {
         await tx.wait();
         console.log(`Approved amount: ${_common_deposit_amount} of LP token: ${await vaultContract.stake()} to vault: ${vaultAddress}`);
 
-        tx = await CakeLpStakingV1.attach(await vaultContract.strategy()).connect(user1).setPendingRewardsFunctionName("pendingCake");
-        await tx.wait();
-
         tx = await vaultContract.deposit(_common_deposit_amount);
         await tx.wait();
         console.log(`Deposited ${_common_deposit_amount} LPs into vault: ${await vaultContract.name()}`);
+
+        tx = await CakeLpStakingV1.attach(await vaultContract.strategy()).connect(user1).setPendingRewardsFunctionName("pendingCake");
+        await tx.wait();
+        console.log(`Done setting pending rewards function name for Vault Strategy.`);
+
     }
 
 }

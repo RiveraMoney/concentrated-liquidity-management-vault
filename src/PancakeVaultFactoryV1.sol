@@ -10,9 +10,6 @@ import './strategies/common/AbstractStrategy.sol';
 
 contract PancakeVaultFactoryV1 is IRiveraAutoCompoundingVaultFactoryV1 {
 
-    ///@notice mapping address of the user who created it to address of the LP pool to pool id to vault address
-    ///@dev The keys of this map would be unique for each vault in the protocol
-    mapping(address => mapping(address => mapping(uint256 => address))) public getVault;
     address[] public allVaults;
 
     ///@notice fixed params that are required to deploy the pool
@@ -34,7 +31,6 @@ contract PancakeVaultFactoryV1 is IRiveraAutoCompoundingVaultFactoryV1 {
         address lpPool = IPancakeFactory(pancakeFactory).getPair(lpToken0, lpToken1);
         require(IMasterChef(chef).poolLength() >= createVaultParams.poolId, 'INVALID_POOL_ID');
         require(lpToken0 != address(0), 'LP_TOKEN0_ZERO_ADDRESS');
-        require(getVault[msg.sender][lpPool][createVaultParams.poolId] == address(0), 'VAULT_EXISTS'); // single check is sufficient
         RiveraAutoCompoundingVaultV1 vault = new RiveraAutoCompoundingVaultV1(createVaultParams.tokenName, createVaultParams.tokenSymbol, createVaultParams.approvalDelay);
         vaultAddress = address(vault);
         CakeLpStakingV1 strategy = new CakeLpStakingV1(CakePoolParams(lpPool, createVaultParams.poolId, chef, createVaultParams.rewardToLp0Route, createVaultParams.rewardToLp1Route), 
@@ -42,7 +38,6 @@ contract PancakeVaultFactoryV1 is IRiveraAutoCompoundingVaultFactoryV1 {
         vault.transferOwnership(msg.sender);
         strategy.transferOwnership(msg.sender);
         vault.init(IStrategy(address(strategy)));
-        getVault[msg.sender][lpPool][createVaultParams.poolId] = vaultAddress;
         allVaults.push(vaultAddress);
         emit VaultCreated(msg.sender, lpPool, createVaultParams.poolId, vaultAddress);
     }

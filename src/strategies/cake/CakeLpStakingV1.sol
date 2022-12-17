@@ -45,8 +45,8 @@ contract CakeLpStakingV1 is AbstractStrategy {
         uint256 stakeHarvested,
         uint256 tvl
     );
-    event Deposit(uint256 tvl);
-    event Withdraw(uint256 tvl);
+    event Deposit(uint256 tvl, uint256 amount);
+    event Withdraw(uint256 tvl, uint256 amount);
 
     ///@dev
     ///@param _cakePoolParams: Has the cake pool specific params
@@ -102,7 +102,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
 
         if (stakeBal > 0) {
             IMasterChef(chef).deposit(poolId, stakeBal);
-            emit Deposit(balanceOf());
+            emit Deposit(balanceOf(), stakeBal);
         }
     }
 
@@ -122,7 +122,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
 
         IERC20(stake).safeTransfer(vault, stakeBal);
 
-        emit Withdraw(balanceOf());
+        emit Withdraw(balanceOf(), stakeBal);
     }
 
     function beforeDeposit() external virtual {}
