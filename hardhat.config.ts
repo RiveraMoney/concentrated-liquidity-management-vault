@@ -1,6 +1,7 @@
 import fs from "fs";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
+import "@nomiclabs/hardhat-etherscan";
 import "hardhat-preprocessor";
 import { HardhatUserConfig, task } from "hardhat/config";
 import * as dotenv from "dotenv";
@@ -41,7 +42,7 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  defaultNetwork: "localBscFork",
+  defaultNetwork: "bscTest",
   networks: {
     hardhat: {
       chainId: 56,
@@ -63,12 +64,12 @@ const config: HardhatUserConfig = {
     bscTest: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
       chainId: 97,
-      accounts: [PRIVATE_KEY1, PRIVATE_KEY2]
+      accounts: [PRIVATE_KEY1, PRIVATE_KEY2, PRIVATE_KEY3]
     },
     bsc: {
       url: "https://bsc-dataseed1.binance.org",
       chainId: 56,
-      accounts: [PRIVATE_KEY1, PRIVATE_KEY2]
+      accounts: [PRIVATE_KEY1, PRIVATE_KEY2, PRIVATE_KEY3]
     },
     localBscFork: {
       url: "http://127.0.0.1:8545/",

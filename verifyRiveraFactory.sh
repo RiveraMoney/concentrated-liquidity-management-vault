@@ -1,0 +1,1 @@
+npx hardhat verify --constructor-args factoryConstructorArgs.js $1
