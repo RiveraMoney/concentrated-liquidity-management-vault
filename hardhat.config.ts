@@ -42,7 +42,7 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  defaultNetwork: "bscTest",
+  defaultNetwork: "localBscFork",
   networks: {
     hardhat: {
       chainId: 56,

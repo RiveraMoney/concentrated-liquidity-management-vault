@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "dotenv": "^16.0.3",
+    "log-timestamp": "^0.3.0",
     "pancakeswap-peripheral": "^1.1.0-beta.0"
   }
 }
