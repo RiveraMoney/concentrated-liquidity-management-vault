@@ -26,7 +26,10 @@ async function main() {
         tokenName: "USER2-CAKE-BNB-LP-VAULT",
         tokenSymbol: "USER2-CAKE-BNB-LP-VAULT"
     });
-    await tx.wait();
+    let txReceipt = await tx.wait();
+    console.log(`Actual gas spent of the current transaction: ${txReceipt.gasUsed.toNumber()}`);
+    console.log(`Effective gas price in the blockchain for transaction: ${txReceipt.effectiveGasPrice.toNumber()}`);
+    console.log(`Actual gas cost of the transaction is: ${txReceipt.gasUsed.toNumber() * txReceipt.effectiveGasPrice.toNumber()}`);
     console.log(`USER2-CAKE-BNB-LP-VAULT created!`);
 
     tx = await pancakeVaultFactoryV1.connect(user3).createVault({
@@ -37,7 +40,10 @@ async function main() {
         tokenName: "USER2-CAKE-BUSD-LP-VAULT",
         tokenSymbol: "USER2-CAKE-BUSD-LP-VAULT"
     });
-    await tx.wait();
+    txReceipt = await tx.wait();
+    console.log(`Actual gas spent of the current transaction: ${txReceipt.gasUsed.toNumber()}`);
+    console.log(`Effective gas price in the blockchain for transaction: ${txReceipt.effectiveGasPrice.toNumber()}`);
+    console.log(`Actual gas cost of the transaction is: ${txReceipt.gasUsed.toNumber() * txReceipt.effectiveGasPrice.toNumber()}`);
     console.log(`USER2-CAKE-BUSD-LP-VAULT created!`);
 
     tx = await pancakeVaultFactoryV1.connect(user3).createVault({
@@ -48,7 +54,10 @@ async function main() {
         tokenName: "USER3-CAKE-USDT-LP-VAULT",
         tokenSymbol: "USER3-CAKE-USDT-LP-VAULT"
     });
-    await tx.wait();
+    txReceipt = await tx.wait();
+    console.log(`Actual gas spent of the current transaction: ${txReceipt.gasUsed.toNumber()}`);
+    console.log(`Effective gas price in the blockchain for transaction: ${txReceipt.effectiveGasPrice.toNumber()}`);
+    console.log(`Actual gas cost of the transaction is: ${txReceipt.gasUsed.toNumber() * txReceipt.effectiveGasPrice.toNumber()}`);
     console.log(`USER3-CAKE-USDT-LP-VAULT created!`);
 
 }
