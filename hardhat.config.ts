@@ -7,13 +7,14 @@ import { HardhatUserConfig, task } from "hardhat/config";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-const PRIVATE_KEY1 = process.env.PRIVATE_KEY1;
-const PRIVATE_KEY2 = process.env.PRIVATE_KEY2;
-const PRIVATE_KEY3 = process.env.PRIVATE_KEY3;
+const ADMIN_ACCOUNT = process.env.ADMIN_ACCOUNT;
+const MAIN_NET_TRANSACTION_ACCOUNT = process.env.MAIN_NET_TRANSACTION_ACCOUNT;
+const TEST_ACCOUNT1 = process.env.TEST_ACCOUNT1;
+const TEST_ACCOUNT2 = process.env.TEST_ACCOUNT2;
 const BSC_SCAN_API_KEY = process.env.BSC_SCAN_API_KEY;
 
-if (!PRIVATE_KEY1 || !PRIVATE_KEY2 || !PRIVATE_KEY3 || !BSC_SCAN_API_KEY) {
-  throw new Error("PRIVATE_KEY1, PRIVATE_KEY2 and BSC_SCAN_API_KEY must be set in .env file.");
+if (!ADMIN_ACCOUNT || !TEST_ACCOUNT1 || !TEST_ACCOUNT2 || !BSC_SCAN_API_KEY || !MAIN_NET_TRANSACTION_ACCOUNT) {
+  throw new Error("ADMIN_ACCOUNT, TEST_ACCOUNT1, MAIN_NET_TRANSACTION_ACCOUNT and BSC_SCAN_API_KEY must be set in .env file.");
 }
 
 import example from "./tasks/example";
@@ -48,15 +49,15 @@ const config: HardhatUserConfig = {
       chainId: 56,
       accounts: [
         {
-          privateKey: `0x${PRIVATE_KEY1}`,
+          privateKey: `0x${ADMIN_ACCOUNT}`,
           balance: "10000000000000000000000"
         },
         {
-          privateKey: `0x${PRIVATE_KEY2}`,
+          privateKey: `0x${TEST_ACCOUNT1}`,
           balance: "10000000000000000000000"
         },
         {
-          privateKey: `0x${PRIVATE_KEY3}`,
+          privateKey: `0x${TEST_ACCOUNT2}`,
           balance: "10000000000000000000000"
         }
       ]
@@ -64,18 +65,18 @@ const config: HardhatUserConfig = {
     bscTest: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
       chainId: 97,
-      accounts: [PRIVATE_KEY1, PRIVATE_KEY2, PRIVATE_KEY3]
+      accounts: [MAIN_NET_TRANSACTION_ACCOUNT, TEST_ACCOUNT1, TEST_ACCOUNT2]
     },
     bsc: {
       url: "https://bsc-dataseed1.binance.org",
       chainId: 56,
-      accounts: [PRIVATE_KEY1, PRIVATE_KEY2, PRIVATE_KEY3]
+      accounts: [MAIN_NET_TRANSACTION_ACCOUNT, TEST_ACCOUNT1, TEST_ACCOUNT2]
     },
     localBscFork: {
       url: "http://127.0.0.1:8545/",
       chainId: 56,
       timeout: 100_000,
-      // accounts: [PRIVATE_KEY1, PRIVATE_KEY2, PRIVATE_KEY3]
+      // accounts: [ADMIN_ACCOUNT, TEST_ACCOUNT1, TEST_ACCOUNT2]          //Impersonating another user's private key on local blockchain works only when this is commented out
     },
   },
   etherscan: {
