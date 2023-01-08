@@ -37,6 +37,7 @@ contract PancakeVaultFactoryV1 is IRiveraAutoCompoundingVaultFactoryV1 {
                                                         CommonAddresses(vaultAddress, router, manager));
         vault.transferOwnership(msg.sender);
         strategy.transferOwnership(msg.sender);
+        strategy.setPendingRewardsFunctionName(createVaultParams.pendingRewardsFunctionName);
         vault.init(IStrategy(address(strategy)));
         allVaults.push(vaultAddress);
         emit VaultCreated(msg.sender, lpPool, createVaultParams.poolId, vaultAddress);

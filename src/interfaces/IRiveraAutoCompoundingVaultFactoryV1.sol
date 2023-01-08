@@ -7,6 +7,7 @@ struct CreateVaultParams {
     address[] rewardToLp1Route;
     string tokenName;
     string tokenSymbol;
+    string pendingRewardsFunctionName;
 }
 
 interface IRiveraAutoCompoundingVaultFactoryV1 {
