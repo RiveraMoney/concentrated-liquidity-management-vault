@@ -50,7 +50,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
 
     ///@dev Users Setup
     address _user = 0xbA79a22A4b8018caFDC24201ab934c9AdF6903d7;
-    address _manager = 0x2fdD10fa2CA4Dfb87c52e2c4F0488120eDD61B6B;
+    address _manager = 0xbA79a22A4b8018caFDC24201ab934c9AdF6903d7;
     address _other = 0xF18Bb60E7Bd9BD65B61C57b9Dd89cfEb774274a1;
     address _whale = 0x14bA0D857C496C03A8c8D5Fcc6c92d30Df804775;
     address _busdWhale = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;
@@ -78,7 +78,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
         vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay);
 
         ///@dev Initializing the strategy
-        _commonAddresses = CommonAddresses(address(vault), _router, _manager);
+        _commonAddresses = CommonAddresses(address(vault), _router);
         cakePoolParams = CakePoolParams(_stake, _poolId, _chef, _rewardToLp0Route, _rewardToLp1Route);
         strategy = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
         vm.stopPrank();
@@ -327,7 +327,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
 
     function test_ProposeStratWithInCorrectVault() public {
 
-        _commonAddresses = CommonAddresses(address(0), _router, _manager);
+        _commonAddresses = CommonAddresses(address(0), _router);
         CakeLpStakingV1 newStrat = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
 
         vm.expectRevert("!proposal");

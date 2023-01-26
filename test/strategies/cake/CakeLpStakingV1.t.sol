@@ -20,8 +20,8 @@ contract CakeLpStakingV1Test is Test {
         uint256 stakeHarvested,
         uint256 tvl
     );
-    event Deposit(uint256 tvl);
-    event Withdraw(uint256 tvl);
+    event Deposit(uint256 tvl, uint256 amount);
+    event Withdraw(uint256 tvl, uint256 amount);
 
     ///@dev Required addresses from mainnet
     ///@notice Currrent addresses are for the BUSD-WOM pool
@@ -47,7 +47,7 @@ contract CakeLpStakingV1Test is Test {
 
     ///@dev Users Setup
     address _user = 0xbA79a22A4b8018caFDC24201ab934c9AdF6903d7;
-    address _manager = 0x2fdD10fa2CA4Dfb87c52e2c4F0488120eDD61B6B;
+    address _manager = 0xbA79a22A4b8018caFDC24201ab934c9AdF6903d7;
     address _other = 0xF18Bb60E7Bd9BD65B61C57b9Dd89cfEb774274a1;
     address _whale = 0x14bA0D857C496C03A8c8D5Fcc6c92d30Df804775;
     address _factory = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;
@@ -71,7 +71,7 @@ contract CakeLpStakingV1Test is Test {
         vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay);
 
         ///@dev Initializing the strategy
-        CommonAddresses memory _commonAddresses = CommonAddresses(address(vault), _router, _manager);
+        CommonAddresses memory _commonAddresses = CommonAddresses(address(vault), _router);
         CakePoolParams memory cakePoolParams = CakePoolParams(_stake, _poolId, _chef, _rewardToLp0Route, _rewardToLp1Route);
         strategy = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
         vm.stopPrank();
@@ -93,7 +93,7 @@ contract CakeLpStakingV1Test is Test {
         vm.prank(_user);
         IERC20(_stake).transfer(address(strategy), 1e18);
         vm.expectEmit(false, false, false, true);
-        emit Deposit(1e18);
+        emit Deposit(1e18, 1e18);
         vm.prank(address(vault));
         strategy.deposit();
 
@@ -130,7 +130,7 @@ contract CakeLpStakingV1Test is Test {
 
         vm.prank(address(vault));
         vm.expectEmit(false, false, false, true);
-        emit Withdraw(0);  //Event emitted it Withdraw(tvl after withdraw)
+        emit Withdraw(0, 1e18);  //Event emitted it Withdraw(tvl after withdraw)
         strategy.withdraw(1e18);
 
         uint256 vaultStakeBalanceAfter = IERC20(_stake).balanceOf(address(vault));
@@ -169,10 +169,9 @@ contract CakeLpStakingV1Test is Test {
 
         vm.roll(block.number + 100);
 
-        vm.prank(_manager);
         vm.expectEmit(true, false, false, false);
         emit StratHarvest(address(this), 0, 0); //We don't try to match the second and third parameter of the event. They're result of Pancake swap contracts, we trust the protocol to be correct.
-        strategy.managerHarvest();
+        strategy.harvest();
         
         uint256 stratPoolBalanceAfter = strategy.balanceOfPool();
         assertGt(stratPoolBalanceAfter, stratPoolBalanceBefore);
@@ -192,7 +191,7 @@ contract CakeLpStakingV1Test is Test {
         vm.prank(_manager);
         strategy.pause();
         vm.expectRevert("Pausable: paused");
-        strategy.managerHarvest();
+        strategy.harvest();
     }
 
     ///@notice tests for manager harvest functions

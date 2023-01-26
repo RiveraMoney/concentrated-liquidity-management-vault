@@ -1,9 +1,10 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "pancakeswap-peripheral/contracts/interfaces/IPancakeRouter02.sol";
 import "@pancakeswap-libs/pancake-swap-core/contracts/interfaces/IPancakePair.sol";
@@ -19,7 +20,7 @@ struct CakePoolParams {
     address[] rewardToLp1Route;
 }
 
-contract CakeLpStakingV1 is AbstractStrategy {
+contract CakeLpStakingV1 is AbstractStrategy, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // Tokens used
@@ -96,7 +97,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
         _deposit();
     }
 
-    function _deposit() internal whenNotPaused {
+    function _deposit() internal whenNotPaused nonReentrant {
         //Entire LP balance of the strategy contract address is deployed to the farm to earn CAKE
         uint256 stakeBal = IERC20(stake).balanceOf(address(this));
 
@@ -106,7 +107,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
         }
     }
 
-    function withdraw(uint256 _amount) external {
+    function withdraw(uint256 _amount) external nonReentrant {
         onlyVault();
         //Pretty Straight forward almost same as AAVE strategy
         uint256 stakeBal = IERC20(stake).balanceOf(address(this));
@@ -236,7 +237,7 @@ contract CakeLpStakingV1 is AbstractStrategy {
         IMasterChef(chef).emergencyWithdraw(poolId);
 
         uint256 stakeBal = IERC20(stake).balanceOf(address(this));
-        IERC20(stake).transfer(vault, stakeBal);
+        IERC20(stake).safeTransfer(vault, stakeBal);
     }
 
     // pauses deposits and withdraws all funds from third party systems.

@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 struct CommonAddresses {
         address vault;
         address router;
-        address manager;
     }
 
 abstract contract AbstractStrategy is Ownable, Pausable {
@@ -30,12 +29,12 @@ abstract contract AbstractStrategy is Ownable, Pausable {
     ) {
         vault = _commonAddresses.vault;
         router = _commonAddresses.router;
-        manager = _commonAddresses.manager;
+        manager = msg.sender;
     }
 
     // checks that caller is either owner or manager.
     function onlyManager() public view {
-        require(msg.sender == owner() || msg.sender == manager, "!manager");
+        require(msg.sender == manager, "!manager");
     }
 
     // set new vault (only for strategy upgrades)

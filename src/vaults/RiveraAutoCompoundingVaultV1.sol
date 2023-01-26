@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -115,7 +116,7 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
         uint256 _after = balance();
         _amount = _after.sub(_pool); // Additional check for deflationary tokens. Yeah right for deflationary tokens amount will change
         uint256 shares = 0;
-        if (totalSupply() == 0) {
+        if (totalSupply() == 0) {       //Strict equality is fine here as totalSupply cannot be manipulated by anyone. It's a vulnerability only in case of token balances.
             shares = _amount; //If no funds are there in the vault then shares minted is same as amount
         } else {
             shares = (_amount.mul(totalSupply())).div(_pool); //If there are funds already then the user's share needs to be scaled
@@ -147,7 +148,7 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
      * from the strategy and pay up the token holder. A proportional number of IOU
      * tokens are burned in the process.
      */
-    function withdraw(uint256 _shares) public onlyOwner {
+    function withdraw(uint256 _shares) public onlyOwner nonReentrant {
         uint256 r = (balance().mul(_shares)).div(totalSupply()); //How much of total asset under management needs to be withdrawn? total Balance * shares/totalSupply
         _burn(msg.sender, _shares); //Check Effect Interactions smart contract code pattern. This is effect.
 
@@ -198,11 +199,11 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
 
         emit UpgradeStrat(stratCandidate.implementation);
 
-        strategy.retireStrat();
+        IStrategy prevStrategy = strategy;
         strategy = IStrategy(stratCandidate.implementation);
         stratCandidate.implementation = address(0); //Setting these values means that there is no proposal for new strategy
         stratCandidate.proposedTime = 5000000000;
-
+        prevStrategy.retireStrat();
         earn();
     }
 

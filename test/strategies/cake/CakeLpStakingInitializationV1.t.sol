@@ -14,15 +14,6 @@ contract CakeLpStakingInitializationV1Test is Test {
     CakeLpStakingV1 strategy;
     RiveraAutoCompoundingVaultV1 vault;
 
-    //Events
-    event StratHarvest(
-        address indexed harvester,
-        uint256 stakeHarvested,
-        uint256 tvl
-    );
-    event Deposit(uint256 tvl);
-    event Withdraw(uint256 tvl);
-
     ///@dev Required addresses from mainnet
     ///@notice Currrent addresses are for the BUSD-WOM pool
     //TODO: move these address configurations to an external file and keep it editable and configurable
@@ -71,7 +62,7 @@ contract CakeLpStakingInitializationV1Test is Test {
         vault = new RiveraAutoCompoundingVaultV1(rivTokenName, rivTokenSymbol, stratUpdateDelay);
 
         ///@dev Initializing the strategy
-        CommonAddresses memory _commonAddresses = CommonAddresses(address(vault), _router, _manager);
+        CommonAddresses memory _commonAddresses = CommonAddresses(address(vault), _router);
         CakePoolParams memory cakePoolParams = CakePoolParams(_stake, _poolId, _chef, _rewardToLp0Route, _rewardToLp1Route);
         strategy = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
         vm.stopPrank();

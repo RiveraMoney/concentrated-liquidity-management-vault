@@ -34,10 +34,11 @@ contract PancakeVaultFactoryV1 is IRiveraAutoCompoundingVaultFactoryV1 {
         RiveraAutoCompoundingVaultV1 vault = new RiveraAutoCompoundingVaultV1(createVaultParams.tokenName, createVaultParams.tokenSymbol, createVaultParams.approvalDelay);
         vaultAddress = address(vault);
         CakeLpStakingV1 strategy = new CakeLpStakingV1(CakePoolParams(lpPool, createVaultParams.poolId, chef, createVaultParams.rewardToLp0Route, createVaultParams.rewardToLp1Route), 
-                                                        CommonAddresses(vaultAddress, router, manager));
+                                                        CommonAddresses(vaultAddress, router));
         vault.transferOwnership(msg.sender);
         strategy.transferOwnership(msg.sender);
         strategy.setPendingRewardsFunctionName(createVaultParams.pendingRewardsFunctionName);
+        strategy.setManager(manager);
         vault.init(IStrategy(address(strategy)));
         allVaults.push(vaultAddress);
         emit VaultCreated(msg.sender, lpPool, createVaultParams.poolId, vaultAddress);
