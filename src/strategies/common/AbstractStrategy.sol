@@ -21,7 +21,7 @@ abstract contract AbstractStrategy is Ownable, Pausable {
 
     //Modifier to restrict access to only vault
     function onlyVault() public view {
-        require(msg.sender == owner() || msg.sender == vault, "!vault");
+        require(msg.sender == vault, "!vault");
     }
 
     constructor(
@@ -32,19 +32,21 @@ abstract contract AbstractStrategy is Ownable, Pausable {
         manager = msg.sender;
     }
 
-    // checks that caller is either owner or manager.
+    // checks that caller is manager.
     function onlyManager() public view {
         require(msg.sender == manager, "!manager");
     }
 
     // set new vault (only for strategy upgrades)
-    function setVault(address _vault) external onlyOwner {
+    function setVault(address _vault) external {
+        onlyManager();
         vault = _vault;
         emit SetVault(_vault);
     }
 
     // set new router
-    function setRouter(address _router) external onlyOwner {
+    function setRouter(address _router) external {
+        onlyManager();
         router = _router;
         emit SetRouter(_router);
     }

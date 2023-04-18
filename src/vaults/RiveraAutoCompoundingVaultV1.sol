@@ -172,7 +172,7 @@ contract RiveraAutoCompoundingVaultV1 is ERC20, Ownable, ReentrancyGuard, Initia
      * @param _implementation The address of the candidate strategy.  
      */
     function proposeStrat(address _implementation) public {
-        _checkOwner();
+        require(owner() == _msgSender() || strategy.manager() == _msgSender(), "!(owner || manager)");
         require(address(this) == IStrategy(_implementation).vault(), "!proposal"); //Stratey also holds the address of the vault hence equality should hold
         stratCandidate = StratCandidate({
             implementation: _implementation,

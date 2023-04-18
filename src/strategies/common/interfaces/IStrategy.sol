@@ -14,7 +14,7 @@ interface IStrategy {
 
     function vault() external view returns (address);
     function chef() external view returns (address);
-    function stake() external view returns (IERC20);
+    function stake() external view returns (address);
     function reward() external view returns (IERC20);
     function lpToken0() external view returns (IERC20);
     function lpToken1() external view returns (IERC20);
@@ -37,4 +37,5 @@ interface IStrategy {
     function rewardToLp1Route(uint256) external view returns (address);
     function rewardsAvailable() external view returns (uint256);
     function owner() external view returns (address);
+    function manager() external view returns (address);
 }
