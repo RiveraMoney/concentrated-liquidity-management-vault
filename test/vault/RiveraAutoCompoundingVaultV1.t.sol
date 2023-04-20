@@ -53,8 +53,8 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
     address _manager = 0xbA79a22A4b8018caFDC24201ab934c9AdF6903d7;
     address _other = 0xF18Bb60E7Bd9BD65B61C57b9Dd89cfEb774274a1;
     address _whale = 0x14bA0D857C496C03A8c8D5Fcc6c92d30Df804775;
-    address _busdWhale = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;
-    address _factory = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;
+    address _busdWhale = 0xD183F2BBF8b28d9fec8367cb06FE72B88778C86B;
+    address _factory = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;      //Factory address is not relevant here as we're independently unit testing the vault functions. This can be any arbitrary address and it would not change any behaviour of the vault test contract.
 
     CommonAddresses _commonAddresses;
     CakePoolParams cakePoolParams;
@@ -340,7 +340,7 @@ contract RiveraAutoCompoundingVaultV1Test is Test {
 
         CakeLpStakingV1 newStrat = new CakeLpStakingV1(cakePoolParams, _commonAddresses);
 
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("!(owner || manager)");
         vault.proposeStrat(address(newStrat));
     }
 
