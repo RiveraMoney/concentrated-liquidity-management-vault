@@ -1,6 +1,7 @@
+@rivera/=src/
 forge-std/=lib/forge-std/src/
 solmate/=lib/solmate/src/
 ds-test/=lib/forge-std/lib/ds-test/src/
-@openzeppelin/=node_modules/@openzeppelin/
-pancakeswap-peripheral=node_modules/pancakeswap-peripheral/
-@pancakeswap-libs=node_modules/@pancakeswap-libs/
+@openzeppelin/=lib/openzeppelin-contracts/
+@pancakeswap-core/=lib/pancake-swap-core/
+@pancakeswap/=lib/pancake-smart-contracts/projects

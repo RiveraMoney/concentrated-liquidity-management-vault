@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "pancakeswap-peripheral/contracts/interfaces/IPancakeRouter02.sol";
-import "@pancakeswap-libs/pancake-swap-core/contracts/interfaces/IPancakePair.sol";
+import "@pancakeswap/exchange-protocol/contracts/interfaces/IPancakeRouter02.sol";
+import "@pancakeswap-core/contracts/interfaces/IPancakePair.sol";
 import "./interfaces/IMasterChef.sol";
 import "../common/AbstractStrategy.sol";
 import "../utils/StringUtils.sol";

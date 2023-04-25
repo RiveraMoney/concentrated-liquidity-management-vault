@@ -74,7 +74,7 @@ contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGuard, Init
      * @return totalAssets the total balance of assets held by the vault.
      */
     function totalAssets() public view virtual override returns (uint256) {
-        return IERC20(asset()).balanceOf(address(this)).add(IStrategy(strategy).balanceOf());
+        return IERC20(asset()).balanceOf(address(this)).add(strategy.balanceOf());
     }
 
     /**
