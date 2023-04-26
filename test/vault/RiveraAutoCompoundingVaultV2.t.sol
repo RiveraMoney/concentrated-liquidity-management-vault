@@ -4,6 +4,7 @@ import "forge-std/Test.sol";
 import "@rivera/strategies/cake/CakeLpStakingV1.sol";
 import "@rivera/strategies/common/interfaces/IStrategy.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2.sol";
+import "@rivera/vaults/RiveraAutoCompoundingVaultV2Public.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 ///@dev
@@ -12,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract RiveraAutoCompoundingVaultV2PreviousTest is Test {
     CakeLpStakingV1 strategy;
-    RiveraAutoCompoundingVaultV2 vault;
+    RiveraAutoCompoundingVaultV2Public vault;
 
     //Events
     event StratHarvest(
@@ -75,7 +76,7 @@ contract RiveraAutoCompoundingVaultV2PreviousTest is Test {
         vm.startPrank(_user);
 
         ///@dev Initializing the vault with invalid strategy
-        vault = new RiveraAutoCompoundingVaultV2(_stake, rivTokenName, rivTokenSymbol, stratUpdateDelay);
+        vault = new RiveraAutoCompoundingVaultV2Public(_stake, rivTokenName, rivTokenSymbol, stratUpdateDelay);
 
         ///@dev Initializing the strategy
         _commonAddresses = CommonAddresses(address(vault), _router);

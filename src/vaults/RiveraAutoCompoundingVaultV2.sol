@@ -27,7 +27,7 @@ struct StratCandidate {
         uint proposedTime;
     }
 
-contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGuard, Initializable {
+abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGuard, Initializable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -62,6 +62,11 @@ contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGuard, Init
 
     function init(IStrategy _strategy) public initializer {
         strategy = _strategy;
+    }
+
+    ///@dev hook function for access control of the vault. Has to be overriden in inheriting contracts to only give access for relevant parties.
+    function _restrictAccess() internal view virtual {
+
     }
 
     /** @dev See {IERC4626-asset}. */
@@ -100,6 +105,7 @@ contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGuard, Init
         uint256 assets,
         uint256 shares
     ) internal virtual override {
+        _restrictAccess();
         strategy.beforeDeposit();
 
         IERC20(asset()).safeTransferFrom(caller, address(this), assets);
@@ -124,6 +130,7 @@ contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGuard, Init
         uint256 assets,
         uint256 shares
     ) internal virtual override {
+        _restrictAccess();
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }

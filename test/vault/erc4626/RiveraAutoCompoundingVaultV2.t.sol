@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "erc4626-tests/ERC4626.test.sol";
-import "@rivera/vaults/RiveraAutoCompoundingVaultV2.sol";
+import "@rivera/vaults/RiveraAutoCompoundingVaultV2Public.sol";
 import "@rivera/strategies/common/interfaces/IStrategy.sol";
 import "@rivera/strategies/common/GenericStrategyMock.sol";
 import "forge-std/console.sol";
@@ -14,7 +14,7 @@ contract RiveraAutoCompoundingVaultV2Test is ERC4626Test {
 
     function setUp() public override {
         _underlying_ = address(new ERC20Mock("MockERC20", "MockERC20", address(this), 0));
-        RiveraAutoCompoundingVaultV2 myVault = new RiveraAutoCompoundingVaultV2(_underlying_, "MockERC4626", "MockERC4626", 172800);
+        RiveraAutoCompoundingVaultV2Public myVault = new RiveraAutoCompoundingVaultV2Public(_underlying_, "MockERC4626", "MockERC4626", 172800);
         _strategy_ = address(new GenericStrategyMock(_underlying_, _vault_));
         myVault.init(IStrategy(_strategy_));
         _vault_ = address(myVault);
