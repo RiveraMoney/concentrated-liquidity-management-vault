@@ -76,7 +76,7 @@ contract RiveraAutoCompoundingVaultV2PreviousTest is Test {
         vm.startPrank(_user);
 
         ///@dev Initializing the vault with invalid strategy
-        vault = new RiveraAutoCompoundingVaultV2Public(_stake, rivTokenName, rivTokenSymbol, stratUpdateDelay);
+        vault = new RiveraAutoCompoundingVaultV2Public(_stake, rivTokenName, rivTokenSymbol, stratUpdateDelay, type(uint256).max);
 
         ///@dev Initializing the strategy
         _commonAddresses = CommonAddresses(address(vault), _router);

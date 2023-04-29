@@ -37,9 +37,15 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
     IStrategy public strategy;
     // The minimum time it has to pass before a strat candidate can be approved.
     uint256 public immutable approvalDelay;
+    // The cap on the total TVL of the vault. If the current TVL + current assets deposit > total TVL the deposit function will revert
+    uint public totalTvlCap;
+    // The cap on the user TVL of the vault. If the current TVL + current assets deposit > total TVL the deposit function will revert
+    mapping(address => uint256) public userTvlCap;
 
     event NewStratCandidate(address implementation);
     event UpgradeStrat(address implementation);
+    event TvlCapChange(address indexed onwer_, uint256 oldTvlCap, uint256 newTvlCap);
+    event UserTvlCapChange(address indexed onwer_, address indexed user, uint256 oldTvlCap, uint256 newTvlCap);
 
     /*
      * @dev Sets the value of {token} to the token that the vault will
@@ -55,9 +61,11 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         address asset_,
         string memory _name,
         string memory _symbol,
-        uint256 _approvalDelay
+        uint256 _approvalDelay, 
+        uint256 _totalTvlCap
     ) ERC4626(IERC20Metadata(asset_)) ERC20(_name, _symbol) {
         approvalDelay = _approvalDelay;
+        totalTvlCap = _totalTvlCap;
     }
 
     function init(IStrategy _strategy) public initializer {
@@ -106,6 +114,8 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         uint256 shares
     ) internal virtual override {
         _restrictAccess();
+        require(totalAssets() + assets <= totalTvlCap, "Vault Cap Breach!");
+        require(userTvlCap[receiver] > 0? convertToAssets(balanceOf(receiver)) + assets <= userTvlCap[receiver]: true, "User Cap Breach!");
         strategy.beforeDeposit();
 
         IERC20(asset()).safeTransferFrom(caller, address(this), assets);
@@ -152,6 +162,20 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         asset_.safeTransfer(receiver, assets);
 
         emit Withdraw(caller, receiver, owner, assets, shares);
+    }
+
+    function setTotalTvlCap(uint256 totalTvlCap_) external {
+        _checkOwner();
+        require(totalTvlCap != totalTvlCap_, "Same TVL cap");
+        emit TvlCapChange(owner(), totalTvlCap, totalTvlCap_);
+        totalTvlCap = totalTvlCap_;
+    }
+
+    function setUserTvlCap(address user_, uint256 userTvlCap_) external {
+        _checkOwner();
+        require(userTvlCap[user_] != userTvlCap_, "Same TVL cap");
+        emit UserTvlCapChange(owner(), user_, userTvlCap[user_], userTvlCap_);
+        userTvlCap[user_] = userTvlCap_;
     }
 
     /** 
