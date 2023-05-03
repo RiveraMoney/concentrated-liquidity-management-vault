@@ -15,9 +15,9 @@ contract RiveraAutoCompoundingVaultV2Test is ERC4626Test {
     function setUp() public override {
         _underlying_ = address(new ERC20Mock("MockERC20", "MockERC20", address(this), 0));
         RiveraAutoCompoundingVaultV2Public myVault = new RiveraAutoCompoundingVaultV2Public(_underlying_, "MockERC4626", "MockERC4626", 172800, type(uint256).max);
+        _vault_ = address(myVault);
         _strategy_ = address(new GenericStrategyMock(_underlying_, _vault_));
         myVault.init(IStrategy(_strategy_));
-        _vault_ = address(myVault);
         _delta_ = 0;
         _vaultMayBeEmpty = false;
         _unlimitedAmount = true;

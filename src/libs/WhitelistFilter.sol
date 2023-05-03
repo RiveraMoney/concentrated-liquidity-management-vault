@@ -12,15 +12,17 @@ abstract contract WhitelistFilter is Ownable {
     event RemoveWhitelist(address indexed user, address indexed owner);
 
     function _checkWhitelist() internal view virtual {
-        require(whitelist[msg.sender], "!whitelisted");
+        require(whitelist[msg.sender], "WhitelistFilter: !whitelisted");
     }
 
     function newWhitelist(address user) external virtual onlyOwner {
+        require(!whitelist[user], "WhitelistFilter: Already Whitelisted");
         whitelist[user] = true;
         emit NewWhitelist(user, owner());
     }
 
     function removeWhitelist(address user) external virtual onlyOwner {
+        require(whitelist[user], "WhitelistFilter: Removing Non Whitelisted");
         whitelist[user] = false;
         emit RemoveWhitelist(user, owner());
     }
