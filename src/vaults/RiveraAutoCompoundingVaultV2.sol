@@ -15,6 +15,8 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 import "../strategies/common/interfaces/IStrategy.sol";
 
+import "forge-std/console.sol";
+
 /**
  * @dev Implementation of a vault to deposit funds for yield optimizing.
  * This is the contract that receives funds and that users interface with.
@@ -114,6 +116,12 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         uint256 shares
     ) internal virtual override {
         _restrictAccess();
+        console.logString("Total assets:");
+        console.logUint(totalAssets());
+        console.logString("assets:");
+        console.logUint(assets);
+        console.logString("totalTvlCap:");
+        console.logUint(totalTvlCap);
         require(totalAssets() + assets <= totalTvlCap, "Vault Cap Breach!");
         require(userTvlCap[receiver] > 0? convertToAssets(balanceOf(receiver)) + assets <= userTvlCap[receiver]: true, "User Cap Breach!");
         strategy.beforeDeposit();
@@ -173,7 +181,7 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
 
     function setUserTvlCap(address user_, uint256 userTvlCap_) external {
         _checkOwner();
-        require(userTvlCap[user_] != userTvlCap_, "Same TVL cap");
+        require(userTvlCap[user_] != userTvlCap_, "Same User cap");
         emit UserTvlCapChange(owner(), user_, userTvlCap[user_], userTvlCap_);
         userTvlCap[user_] = userTvlCap_;
     }
