@@ -92,6 +92,28 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         return IERC20(asset()).balanceOf(address(this)).add(strategy.balanceOf());
     }
 
+    /** @dev See {IERC4626-maxDeposit}. */
+    function maxDeposit(address receiver) public view virtual override returns (uint256) {       //Can be decided both by total vault cap and user specific cap. If paused return 0
+        if (strategy.paused()) return 0;
+        uint256 maxFromTotalTvlCap = totalTvlCap - totalAssets();
+        uint256 userCap = userTvlCap[receiver];
+        uint256 maxFromUserTvlCap = userCap > 0? userTvlCap[receiver] - previewMint(balanceOf(receiver)): type(uint256).max;
+        return maxFromTotalTvlCap < maxFromUserTvlCap ? maxFromTotalTvlCap : maxFromUserTvlCap;
+    }
+
+    /** @dev See {IERC4626-maxMint}. */
+    function maxMint(address receiver) public view virtual override returns (uint256) {
+        if (strategy.paused()) return 0;
+        console.logUint(1);
+        uint256 maxFromTotalTvlCap = this.convertToShares(totalTvlCap - this.totalAssets());
+        console.logUint(2);
+        uint256 userCap = userTvlCap[receiver];
+        console.logUint(3);
+        uint256 maxFromUserTvlCap = userCap > 0? convertToShares(userTvlCap[receiver]) - balanceOf(receiver): type(uint256).max;
+        console.logUint(4);
+        return maxFromTotalTvlCap < maxFromUserTvlCap ? maxFromTotalTvlCap : maxFromUserTvlCap;
+    }
+
     /**
      * @dev Function to send funds into the strategy and put them to work. It's primarily called
      * by the vault's deposit() function.
@@ -116,14 +138,6 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         uint256 shares
     ) internal virtual override {
         _restrictAccess();
-        console.logString("Total assets:");
-        console.logUint(totalAssets());
-        console.logString("assets:");
-        console.logUint(assets);
-        console.logString("totalTvlCap:");
-        console.logUint(totalTvlCap);
-        require(totalAssets() + assets <= totalTvlCap, "Vault Cap Breach!");
-        require(userTvlCap[receiver] > 0? convertToAssets(balanceOf(receiver)) + assets <= userTvlCap[receiver]: true, "User Cap Breach!");
         strategy.beforeDeposit();
 
         IERC20(asset()).safeTransferFrom(caller, address(this), assets);

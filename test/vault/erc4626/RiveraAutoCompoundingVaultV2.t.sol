@@ -55,14 +55,8 @@ contract RiveraAutoCompoundingVaultV2Test is ERC4626Test {
 
     // setup initial yield
     function setUpYield(Init memory init) public override {
-        if (init.yield >= 0) { // gain
-            uint gain = uint(init.yield);
-            try IMockERC20(_underlying_).mint(_strategy_, gain) {} catch { vm.assume(false); } // this can be replaced by calling yield generating functions if provided by the vault
-        } else { // loss
-            vm.assume(init.yield > type(int).min); // avoid overflow in conversion
-            uint loss = uint(-1 * init.yield);
-            try IMockERC20(_underlying_).burn(_strategy_, loss) {} catch { vm.assume(false); } // this can be replaced by calling yield generating functions if provided by the vault
-        }
+        uint gain = uint(init.yield);
+        try IMockERC20(_underlying_).mint(_strategy_, gain) {} catch { vm.assume(false); } // this can be replaced by calling yield generating functions if provided by the vault
     }
 
 }

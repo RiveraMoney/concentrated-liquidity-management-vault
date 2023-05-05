@@ -104,7 +104,7 @@ contract RiveraAutoCompoundingVaultV2PublicTest is Test  {
         vm.assume(IERC4626(_vault_).totalAssets() + userAssets >= 1);
         vm.prank(_owner_); RiveraAutoCompoundingVaultV2Public(_vault_).setTotalTvlCap(IERC4626(_vault_).totalAssets() + userAssets - 1);
         vm.prank(user); IMockERC20(_underlying_).approve(_vault_, userAssets);
-        vm.expectRevert("Vault Cap Breach!");
+        vm.expectRevert("ERC4626: deposit more than max");
         vm.prank(user); IERC4626(_vault_).deposit(userAssets, user);
     }
 
@@ -147,7 +147,7 @@ contract RiveraAutoCompoundingVaultV2PublicTest is Test  {
         userAssets = bound(userAssets, 0, IERC20(_underlying_).balanceOf(user));
         vm.prank(_owner_); RiveraAutoCompoundingVaultV2Public(_vault_).setUserTvlCap(user, IERC4626(_vault_).convertToAssets(IERC4626(_vault_).balanceOf(user)) + userAssets - 1);
         vm.prank(user); IMockERC20(_underlying_).approve(_vault_, userAssets);
-        vm.expectRevert("User Cap Breach!");
+        vm.expectRevert("ERC4626: deposit more than max");
         vm.prank(user); IERC4626(_vault_).deposit(userAssets, user);
     }
 
@@ -199,7 +199,7 @@ contract RiveraAutoCompoundingVaultV2PublicTest is Test  {
         vm.prank(_owner_); RiveraAutoCompoundingVaultV2Public(_vault_).setTotalTvlCap(IERC4626(_vault_).totalAssets() + userAssets - 1);
         vm.prank(user); IMockERC20(_underlying_).approve(_vault_, userAssets);
         uint256 shares = IERC4626(_vault_).convertToShares(userAssets);
-        vm.expectRevert("Vault Cap Breach!");
+        vm.expectRevert("ERC4626: mint more than max");
         vm.prank(user); IERC4626(_vault_).mint(shares, user);
     }
 
@@ -226,7 +226,7 @@ contract RiveraAutoCompoundingVaultV2PublicTest is Test  {
         vm.startPrank(_owner_); RiveraAutoCompoundingVaultV2Public(_vault_).setUserTvlCap(user, IERC4626(_vault_).convertToAssets(IERC4626(_vault_).balanceOf(user)) + userAssets - 1); vm.stopPrank();
         vm.prank(user); IMockERC20(_underlying_).approve(_vault_, userAssets);
         uint256 shares = IERC4626(_vault_).convertToShares(userAssets);
-        vm.expectRevert("User Cap Breach!");
+        vm.expectRevert("ERC4626: mint more than max");
         vm.prank(user); IERC4626(_vault_).mint(shares, user);
     }
 
