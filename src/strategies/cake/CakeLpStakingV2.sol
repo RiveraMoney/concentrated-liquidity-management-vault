@@ -158,6 +158,67 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
             .safeTransferFrom(address(this), chef, tokenID);
     }
 
+    //here _amount is liquidity amount and not deposited token amount
+    function withdraw(uint256 _amount) external nonReentrant {
+        onlyVault();
+        //Pretty Straight forward almost same as AAVE strategy
+        require(_amount <= Liquidity, "Amount is too large");
+
+        (uint256 amount0, uint256 amount1) = IMasterChefV3(chef)
+            .decreaseLiquidity(
+                INonfungiblePositionManager.DecreaseLiquidityParams(
+                    tokenID,
+                    uint128(_amount),
+                    1,
+                    1,
+                    block.timestamp
+                )
+            );
+        IMasterChefV3(chef).collect(
+            INonfungiblePositionManager.CollectParams(
+                tokenID,
+                address(this),
+                uint128(amount0),
+                uint128(amount1)
+            )
+        );
+        uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
+        uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
+
+        if (depositToken != lpToken0) {
+            address[] memory dTtolp0 = new address[](2);
+            dTtolp0[0] = lpToken0;
+            dTtolp0[1] = depositToken;
+
+            IPancakeRouter02(router).swapExactTokensForTokens(
+                lp0Bal,
+                0,
+                dTtolp0,
+                address(this),
+                block.timestamp
+            );
+        }
+
+        if (depositToken != lpToken1) {
+            //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 1
+            address[] memory dTtolp1 = new address[](2);
+            dTtolp1[0] = lpToken1;
+            dTtolp1[1] = depositToken;
+
+            IPancakeRouter02(router).swapExactTokensForTokens(
+                lp1Bal,
+                0,
+                dTtolp1,
+                address(this),
+                block.timestamp
+            );
+        }
+        uint256 depositTokenBal = IERC20(depositToken).balanceOf(address(this));
+        IERC20(depositToken).safeTransfer(vault, depositTokenBal);
+
+        // emit Withdraw(balanceOf(), stakeBal);
+    }
+
     function beforeDeposit() external virtual {}
 
     // Adds liquidity to AMM and gets more LP tokens.
