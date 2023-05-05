@@ -5,3 +5,5 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 @openzeppelin/=lib/openzeppelin-contracts/
 @pancakeswap-core/=lib/pancake-swap-core/
 @pancakeswap/=lib/pancake-smart-contracts/projects
+pancakeswap-peripheral=node_modules/pancakeswap-peripheral/
+@pancakeswap-libs=node_modules/@pancakeswap-libs/
