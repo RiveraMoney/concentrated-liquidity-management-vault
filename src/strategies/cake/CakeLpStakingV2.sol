@@ -221,6 +221,32 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
 
     function beforeDeposit() external virtual {}
 
+    function harvest() external virtual {
+        _harvest();
+    }
+
+    function managerHarvest() external {
+        onlyManager();
+        _harvest();
+    }
+
+    // compounds earnings and charges performance fee
+    function _harvest() internal whenNotPaused {
+        IMasterChefV3(chef).harvest(tokenID, address(this)); //it will transfer the CAKE rewards owed to the strategy.
+        //This essentially harvests the yeild from CAKE.
+        uint256 rewardBal = IERC20(reward).balanceOf(address(this)); //reward tokens will be CAKE. Cake balance of this strategy address will be zero before harvest.
+        if (rewardBal > 0) {
+            uint128 newLiquidiy = addLiquidity(); //add liquidity to nfmanager and update liquidity at masterchef
+            // uint256 stakeHarvested = balanceOfStake();
+            uint256 stakeHarvested = uint256(newLiquidiy - Liquidity);
+            Liquidity = newLiquidiy;
+            // _deposit(); //Deposits the LP tokens from harvest
+
+            lastHarvest = block.timestamp;
+            emit StratHarvest(msg.sender, stakeHarvested, balanceOf());
+        }
+    }
+
     // Adds liquidity to AMM and gets more LP tokens.
     function addLiquidity() internal returns (uint128) {
         //Should convert the CAKE tokens harvested into WOM and BUSD tokens and depost it in the liquidity pool. Get the LP tokens and stake it back to earn more CAKE.
