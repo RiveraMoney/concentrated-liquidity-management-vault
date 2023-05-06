@@ -17,7 +17,6 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
 struct CakePoolParams {
     address stake;
-    uint256 poolId;
     address chef;
     address[] rewardToLp0Route;
     address[] rewardToLp1Route;
@@ -70,11 +69,10 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
     ///@param _cakePoolParams: Has the cake pool specific params
     ///@param _commonAddresses: Has addresses common to all vaults, check Rivera Fee manager for more info
     constructor(
-        CakePoolParams memory _cakePoolParams, //["0x133B3D95bAD5405d14d53473671200e9342896BF","116","0x556B9306565093C855AEA9AE92A594704c2Cd59e",["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"],["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"],"0x55d398326f99059fF775485246999027B3197955",-54450,-41650]
+        CakePoolParams memory _cakePoolParams, //["0x133B3D95bAD5405d14d53473671200e9342896BF","0x556B9306565093C855AEA9AE92A594704c2Cd59e",["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"],["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"],"0x55d398326f99059fF775485246999027B3197955",-54450,-41650]
         CommonAddresses memory _commonAddresses //["vault","0x10ED43C718714eb63d5aA57B78B54704E256024E"]
     ) AbstractStrategy(_commonAddresses) {
         stake = _cakePoolParams.stake;
-        poolId = _cakePoolParams.poolId;
         chef = _cakePoolParams.chef;
         depositToken = _cakePoolParams.depositToken;
         ranges[rangeId++] = Range(
@@ -158,6 +156,49 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
             .safeTransferFrom(address(this), chef, tokenID);
     }
 
+    function burnAndCollectV3() internal nonReentrant {
+        (uint256 liquidity, , , , , , , , ) = IMasterChefV3(chef)
+            .userPositionInfos(tokenID);
+        require(liquidity > 0, "No Liquidity available");
+        IMasterChefV3(chef).withdraw(tokenID, address(this));
+
+        (uint256 amount0, uint256 amount1) = INonfungiblePositionManager(
+            NonfungiblePositionManager
+        ).decreaseLiquidity(
+                INonfungiblePositionManager.DecreaseLiquidityParams(
+                    tokenID,
+                    uint128(liquidity),
+                    1,
+                    1,
+                    block.timestamp
+                )
+            );
+
+        INonfungiblePositionManager(NonfungiblePositionManager).collect(
+            INonfungiblePositionManager.CollectParams(
+                tokenID,
+                address(this),
+                uint128(amount0),
+                uint128(amount1)
+            )
+        );
+        INonfungiblePositionManager(NonfungiblePositionManager).burn(tokenID);
+    }
+
+    //{-52050,-42800}
+    function ChangeRange(int24 tickLower, int24 tickUpper) external {
+        onlyManager();
+        require(
+            ranges[rangeId - 1].tickLower != tickLower &&
+                ranges[rangeId - 1].tickUpper != tickUpper,
+            "Range cannot be same"
+        );
+        burnAndCollectV3();
+        ranges[rangeId++] = Range(tickLower, tickUpper);
+        _mintAndAddLiquidityV3();
+        _deposit();
+    }
+
     //here _amount is liquidity amount and not deposited token amount
     function withdraw(uint256 _amount) external nonReentrant {
         onlyVault();
@@ -182,41 +223,11 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
                 uint128(amount1)
             )
         );
-        uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
-        uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
-
-        if (depositToken != lpToken0) {
-            address[] memory dTtolp0 = new address[](2);
-            dTtolp0[0] = lpToken0;
-            dTtolp0[1] = depositToken;
-
-            IPancakeRouter02(router).swapExactTokensForTokens(
-                lp0Bal,
-                0,
-                dTtolp0,
-                address(this),
-                block.timestamp
-            );
-        }
-
-        if (depositToken != lpToken1) {
-            //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 1
-            address[] memory dTtolp1 = new address[](2);
-            dTtolp1[0] = lpToken1;
-            dTtolp1[1] = depositToken;
-
-            IPancakeRouter02(router).swapExactTokensForTokens(
-                lp1Bal,
-                0,
-                dTtolp1,
-                address(this),
-                block.timestamp
-            );
-        }
+        _lptoDepositTokenSwap();
         uint256 depositTokenBal = IERC20(depositToken).balanceOf(address(this));
         IERC20(depositToken).safeTransfer(vault, depositTokenBal);
-
-        // emit Withdraw(balanceOf(), stakeBal);
+        Liquidity = Liquidity - uint128(_amount);
+        emit Withdraw(balanceOf(), _amount);
     }
 
     function beforeDeposit() external virtual {}
@@ -236,14 +247,14 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
         //This essentially harvests the yeild from CAKE.
         uint256 rewardBal = IERC20(reward).balanceOf(address(this)); //reward tokens will be CAKE. Cake balance of this strategy address will be zero before harvest.
         if (rewardBal > 0) {
-            uint128 newLiquidiy = addLiquidity(); //add liquidity to nfmanager and update liquidity at masterchef
-            // uint256 stakeHarvested = balanceOfStake();
-            uint256 stakeHarvested = uint256(newLiquidiy - Liquidity);
-            Liquidity = newLiquidiy;
-            // _deposit(); //Deposits the LP tokens from harvest
+            uint128 increasedLiquidity = addLiquidity(); //add liquidity to nfmanager and update liquidity at masterchef
 
             lastHarvest = block.timestamp;
-            emit StratHarvest(msg.sender, stakeHarvested, balanceOf());
+            emit StratHarvest(
+                msg.sender,
+                uint256(increasedLiquidity),
+                balanceOf()
+            );
         }
     }
 
@@ -283,12 +294,13 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
                     tokenID,
                     lp0Bal,
                     lp1Bal,
-                    0,
-                    0,
+                    1,
+                    1,
                     block.timestamp
                 )
             );
         IMasterChefV3(chef).updateLiquidity(tokenID);
+        Liquidity = uint128(balanceOf());
         return liquidity;
     }
 
@@ -317,6 +329,40 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
             );
         tokenID = tokenId;
         Liquidity = liquidity;
+    }
+
+    function _lptoDepositTokenSwap() internal {
+        uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
+        uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
+
+        if (depositToken != lpToken0) {
+            address[] memory lp0toDt = new address[](2);
+            lp0toDt[0] = lpToken0;
+            lp0toDt[1] = depositToken;
+
+            IPancakeRouter02(router).swapExactTokensForTokens(
+                lp0Bal,
+                0,
+                lp0toDt,
+                address(this),
+                block.timestamp
+            );
+        }
+
+        if (depositToken != lpToken1) {
+            //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 1
+            address[] memory lp1toDt = new address[](2);
+            lp1toDt[0] = lpToken1;
+            lp1toDt[1] = depositToken;
+
+            IPancakeRouter02(router).swapExactTokensForTokens(
+                lp1Bal,
+                0,
+                lp1toDt,
+                address(this),
+                block.timestamp
+            );
+        }
     }
 
     // calculate the total underlaying 'stake' held by the strat.
@@ -349,25 +395,28 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
     // returns rewards unharvested
     function rewardsAvailable() public view returns (uint256) {
         //Returns the rewards available to the strategy contract from the pool
-        (uint256 liquidity, , , , , , , , ) = IMasterChefV3(chef)
-            .userPositionInfos(tokenID);
-        return liquidity;
+        uint256 rewardsAvbl = IMasterChefV3(chef).pendingCake(tokenID);
+        return rewardsAvbl;
     }
 
     // called as part of strat migration. Sends all the available funds back to the vault.
     function retireStrat() external {
         onlyVault();
-        IMasterChef(chef).emergencyWithdraw(poolId);
-
-        uint256 stakeBal = IERC20(stake).balanceOf(address(this));
-        IERC20(stake).safeTransfer(vault, stakeBal);
+        // IMasterChef(chef).emergencyWithdraw(poolId);
+        burnAndCollectV3();
+        _lptoDepositTokenSwap();
+        uint256 depositTokenBal = IERC20(depositToken).balanceOf(address(this));
+        IERC20(depositToken).safeTransfer(vault, depositTokenBal);
     }
 
     // pauses deposits and withdraws all funds from third party systems.
     function panic() public {
         onlyManager();
         pause();
-        IMasterChef(chef).emergencyWithdraw(poolId);
+        burnAndCollectV3();
+        _lptoDepositTokenSwap();
+        uint256 depositTokenBal = IERC20(depositToken).balanceOf(address(this));
+        IERC20(depositToken).safeTransfer(vault, depositTokenBal);
     }
 
     function pause() public {
@@ -426,96 +475,4 @@ contract CakeLpStakingV2 is AbstractStrategy, ReentrancyGuard, ERC721Holder {
     function rewardToLp1() external view returns (address[] memory) {
         return rewardToLp1Route;
     }
-
-    //dummy functions
-
-    // calculate the total lp0balance.
-    function lp0balance() public view returns (uint256) {
-        return IERC20(lpToken0).balanceOf(address(this));
-    }
-
-    // calculate the total lp1balance.
-    function lp1balance() public view returns (uint256) {
-        return IERC20(lpToken1).balanceOf(address(this));
-    }
-
-    // calculate the total lp1balance.
-    function cakeBalance() public view returns (uint256) {
-        return IERC20(reward).balanceOf(address(this));
-    }
-
-    // calculate the total deposittoken.
-    function depositTokenBalance() public view returns (uint256) {
-        return IERC20(depositToken).balanceOf(address(this));
-    }
-
-    function dummyCheckMCPosition() public view returns (uint256) {
-        (uint256 liquidity, , , , , , , , ) = IMasterChefV3(chef)
-            .userPositionInfos(tokenID);
-        return liquidity;
-    }
-
-    function dummyCheckNFMPosition() public view returns (uint256) {
-        (, , , , , , , uint128 liquidity, , , , ) = INonfungiblePositionManager(
-            NonfungiblePositionManager
-        ).positions(tokenID);
-        return liquidity;
-    }
-
-    function dummyCheckPendingRewards() public view returns (uint256) {
-        uint256 rewardsAvbl = IMasterChefV3(chef).pendingCake(tokenID);
-        return rewardsAvbl;
-    }
-
-    function dummyIncreaseLiquidity() public {
-        uint256 stableCoinHalf = IERC20(depositToken).balanceOf(address(this)) /
-            2;
-
-        //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 0
-        if (depositToken != lpToken0) {
-            address[] memory dTtolp0 = new address[](2);
-            dTtolp0[0] = depositToken;
-            dTtolp0[1] = lpToken0;
-
-            IPancakeRouter02(router).swapExactTokensForTokens(
-                stableCoinHalf,
-                0,
-                dTtolp0,
-                address(this),
-                block.timestamp
-            );
-        }
-
-        if (depositToken != lpToken1) {
-            //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 1
-            address[] memory dTtolp1 = new address[](2);
-            dTtolp1[0] = depositToken;
-            dTtolp1[1] = lpToken1;
-
-            IPancakeRouter02(router).swapExactTokensForTokens(
-                stableCoinHalf,
-                0,
-                dTtolp1,
-                address(this),
-                block.timestamp
-            );
-        }
-        uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
-        uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
-
-        INonfungiblePositionManager(NonfungiblePositionManager)
-            .increaseLiquidity(
-                INonfungiblePositionManager.IncreaseLiquidityParams(
-                    tokenID,
-                    lp0Bal,
-                    lp1Bal,
-                    1,
-                    1,
-                    block.timestamp
-                )
-            );
-        IMasterChefV3(chef).updateLiquidity(tokenID);
-    }
-
-    //end dummy functions
 }
