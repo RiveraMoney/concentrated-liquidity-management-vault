@@ -6,13 +6,15 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 struct CommonAddresses {
     address vault;
     address router;
+    address NonfungiblePositionManager;
 }
 
-abstract contract AbstractStrategy is Ownable, Pausable {
+abstract contract AbstractStrategyV2 is Ownable, Pausable {
     // common addresses for the strategy
     address public vault;
     address public router;
     address public manager;
+    address public NonfungiblePositionManager;
 
     event SetVault(address vault);
     event SetRouter(address unirouter);
@@ -20,30 +22,30 @@ abstract contract AbstractStrategy is Ownable, Pausable {
 
     //Modifier to restrict access to only vault
     function onlyVault() public view {
-        require(msg.sender == vault, "!vault");
+        require(msg.sender == owner() || msg.sender == vault, "!vault");
     }
 
     constructor(CommonAddresses memory _commonAddresses) {
         vault = _commonAddresses.vault;
         router = _commonAddresses.router;
+        NonfungiblePositionManager = _commonAddresses
+            .NonfungiblePositionManager;
         manager = msg.sender;
     }
 
-    // checks that caller is manager.
+    // checks that caller is either owner or manager.
     function onlyManager() public view {
         require(msg.sender == manager, "!manager");
     }
 
     // set new vault (only for strategy upgrades)
-    function setVault(address _vault) external {
-        onlyManager();
+    function setVault(address _vault) external onlyOwner {
         vault = _vault;
         emit SetVault(_vault);
     }
 
     // set new router
-    function setRouter(address _router) external {
-        onlyManager();
+    function setRouter(address _router) external onlyOwner {
         router = _router;
         emit SetRouter(_router);
     }
