@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "pancakeswap-peripheral/contracts/interfaces/IPancakeRouter02.sol";
 import "@pancakeswap-libs/pancake-swap-core/contracts/interfaces/IPancakePair.sol";
 import "./interfaces/IMasterChef.sol";
 import "./interfaces/IMasterChefV3.sol";
@@ -62,7 +61,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
     ///@param _cakePoolParams: Has the cake pool specific params
     ///@param _commonAddresses: Has addresses common to all vaults, check Rivera Fee manager for more info
     constructor(
-        CakePoolParams memory _cakePoolParams, //["0x133B3D95bAD5405d14d53473671200e9342896BF","0x556B9306565093C855AEA9AE92A594704c2Cd59e",["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"],["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"],true,-54450,-41650]
+        CakePoolParams memory _cakePoolParams, //["0x36696169C63e42cd08ce11f5deeBbCeBae652050","0x556B9306565093C855AEA9AE92A594704c2Cd59e",["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0x55d398326f99059ff775485246999027b3197955"],["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"],true,-57260,-57170] -57760,57060 //usdt/bnb//usdt/bnb
         CommonAddresses memory _commonAddresses //["vault","0x13f4EA83D0bd40E75C8222255bc855a974568Dd4","0x46A15B0b27311cedF172AB29E4f4766fbE7F4364"]
     ) AbstractStrategyV2(_commonAddresses) {
         stake = _cakePoolParams.stake;
@@ -112,11 +111,11 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
 
         //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 0
         if (depositToken != lpToken0) {
-            _swapV3(depositToken, lpToken0, depositAssetHalf);
+            _swapV3(depositToken, lpToken0, depositAssetHalf, 500);
         }
 
         if (depositToken != lpToken1) {
-            _swapV3(depositToken, lpToken1, depositAssetHalf);
+            _swapV3(depositToken, lpToken1, depositAssetHalf, 500);
         }
 
         _mintAndAddLiquidityV3();
@@ -237,11 +236,11 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
         //Should convert the CAKE tokens harvested into WOM and BUSD tokens and depost it in the liquidity pool. Get the LP tokens and stake it back to earn more CAKE.
         uint256 rewardHalf = IERC20(reward).balanceOf(address(this)) / 2; //It says IUniswap here which might be inaccurate. If the address is that of pancake swap and method signatures match then the call should be made correctly.
         if (lpToken0 != reward) {
-            _swapV3(reward, lpToken0, rewardHalf);
+            _swapV3(reward, lpToken0, rewardHalf, 2500);
         }
 
         if (lpToken1 != reward) {
-            _swapV3(reward, lpToken1, rewardHalf);
+            _swapV3(reward, lpToken1, rewardHalf, 2500);
         }
 
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
@@ -274,7 +273,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
                 INonfungiblePositionManager.MintParams(
                     lpToken0,
                     lpToken1,
-                    2500,
+                    500,
                     tickLower,
                     tickUpper,
                     lp0Bal,
@@ -293,18 +292,19 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
         address depositToken = getDepositToken();
         if (depositToken != lpToken0) {
-            _swapV3(lpToken0, depositToken, lp0Bal);
+            _swapV3(lpToken0, depositToken, lp0Bal, 500);
         }
 
         if (depositToken != lpToken1) {
-            _swapV3(lpToken1, depositToken, lp1Bal);
+            _swapV3(lpToken1, depositToken, lp1Bal, 500);
         }
     }
 
     function _swapV3(
         address tokenIn,
         address tokenOut,
-        uint256 amount
+        uint256 amount,
+        uint24 fee
     ) internal {
         // address[] memory path = new address[](2);
         // path[0] = tokenIn;
@@ -313,7 +313,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
             IV3SwapRouter.ExactInputSingleParams(
                 tokenIn,
                 tokenOut,
-                2500,
+                fee,
                 address(this),
                 amount,
                 1,
