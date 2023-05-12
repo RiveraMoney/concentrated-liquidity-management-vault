@@ -128,14 +128,12 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
     }
 
     function burnAndCollectV3() internal nonReentrant {
-        (uint256 liquidity, , , , , , , , ) = IMasterChefV3(chef)
-            .userPositionInfos(tokenID);
+        uint256 liquidity = balanceOfPool();
         require(liquidity > 0, "No Liquidity available");
         IMasterChefV3(chef).withdraw(tokenID, address(this)); //transfer the nft back to the user
 
-        (uint256 amount0, uint256 amount1) = INonfungiblePositionManager(
-            NonfungiblePositionManager
-        ).decreaseLiquidity(
+        INonfungiblePositionManager(NonfungiblePositionManager)
+            .decreaseLiquidity(
                 INonfungiblePositionManager.DecreaseLiquidityParams(
                     tokenID,
                     uint128(liquidity),
@@ -145,12 +143,29 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
                 )
             );
 
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            uint128 tokensOwed0,
+            uint128 tokensOwed1
+        ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(
+                tokenID
+            );
+
         INonfungiblePositionManager(NonfungiblePositionManager).collect(
             INonfungiblePositionManager.CollectParams(
                 tokenID,
                 address(this),
-                uint128(amount0),
-                uint128(amount1)
+                tokensOwed0,
+                tokensOwed1
             )
         );
         INonfungiblePositionManager(NonfungiblePositionManager).burn(tokenID);
