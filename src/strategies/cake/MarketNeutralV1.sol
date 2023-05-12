@@ -66,6 +66,20 @@ contract MarketNeutralV1 is CakeLpStakingV2 {
         onlyVault();
         uint256 price = _getChainlinkPrice();
         _levelShort(price, _amount, _sizeChange, _updateType);
+
+        uint256 shortAmount = IERC20(getDepositToken()).balanceOf(
+            address(this)
+        );
+        //transfer short position to vault
+        IERC20(getDepositToken()).safeTransfer(vault, shortAmount);
+    }
+
+    function withdrawResidualBalance() public {
+        onlyVault();
+        uint256 depositTokenBal = IERC20(getDepositToken()).balanceOf(
+            address(this)
+        );
+        IERC20(getDepositToken()).safeTransfer(vault, depositTokenBal);
     }
 
     function _levelShort(

@@ -159,8 +159,8 @@ contract MarketNeutralV1Test is Test {
             _rewardToLp0Route,
             _rewardToLp1Route,
             true,
-            -57260,
-            -57170
+            -58200,
+            -56200
         ); //["0x36696169C63e42cd08ce11f5deeBbCeBae652050","0x556B9306565093C855AEA9AE92A594704c2Cd59e",["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0x55d398326f99059ff775485246999027b3197955"],["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"],true,-57260,-57170]
         ShortParams memory shortParams = ShortParams(
             _OrderManager,
@@ -188,9 +188,9 @@ contract MarketNeutralV1Test is Test {
 
     //@notice tests for deposit function
 
-    function test_DepositWhenNotPausedAndCalledByVault() public {
+    function test_splitdepositFunction() public {
         vm.prank(_user);
-        IERC20(_usdt).transfer(address(strategy), 42e18);
+        IERC20(_usdt).transfer(address(strategy), 48e18);
         // // vm.expectEmit(false, false, false, true);
         // // emit Deposit(1e18, 1e18);
         vm.prank(address(vault));
@@ -285,6 +285,11 @@ contract MarketNeutralV1Test is Test {
         );
         console.log("position size value after rebalance", position.size);
 
+        vm.stopPrank();
+
+        vm.startPrank(address(vault));
+        strategy.withdrawResidualBalance();
+
         //balanceofStablecoin of strategy
         balanceOfStablecoin_Strategy = IERC20(_usdt).balanceOf(
             address(strategy)
@@ -304,5 +309,125 @@ contract MarketNeutralV1Test is Test {
         );
 
         // assertEq(stratStakeBalanceAfter, 1e18);
+    }
+
+    function test_withdrawPancakeLiquidty() public {
+        vm.prank(_user);
+        IERC20(_usdt).transfer(address(strategy), 48e18);
+        // // vm.expectEmit(false, false, false, true);
+        // // emit Deposit(1e18, 1e18);
+        vm.prank(address(vault));
+        strategy.splitAndDeposit{value: 3500000000000000}();
+
+        uint256 orderId = ILevelOrderManager(_OrderManager).nextOrderId() - 1;
+        uint256 indexTokenPrice = strategy._getChainlinkPrice() / 1e4;
+        console.log("index price", indexTokenPrice);
+        console.log("orderId", orderId);
+        vm.stopPrank();
+
+        vm.roll(block.number + 1);
+        {
+            address[] memory tokens = new address[](1);
+            tokens[0] = _wbnb;
+            uint256[] memory prices = new uint[](1);
+            prices[0] = indexTokenPrice;
+            vm.startPrank(PRICE_REPORTER);
+            LEVEL_ORACLE.postPrices(tokens, prices);
+        }
+
+        // EXECUTE ORDER, can be called by LevelKeeper, or anyone interest
+        {
+            uint256[] memory orders = new uint[](1);
+            orders[0] = orderId;
+            uint256[] memory swapOrders = new uint[](0);
+            TRADE_EXECUTOR.executeOrders(orders, swapOrders);
+        }
+        // check if position is opened
+        bytes32 positionId = keccak256(
+            abi.encode(strategy, _wbnb, _usdt, Side.SHORT)
+        );
+        vm.roll(block.number + 1);
+        Position memory position = LEVEL_POOL.positions(positionId);
+        console.log("position collateral value", position.collateralValue);
+        vm.stopPrank();
+        /*//         lets rebalance         //*/
+        console.log("==============================================");
+
+        //lets withdraw
+        vm.roll(block.number + 10);
+        vm.prank(address(vault));
+        strategy.withdrawShortPosition{value: 3500000000000000}(
+            position.collateralValue,
+            // 4982000005491200000000000000000,
+            position.size,
+            MarketNeutralV1.UpdatePositionType.DECREASE
+        );
+
+        orderId = ILevelOrderManager(_OrderManager).nextOrderId() - 1;
+        indexTokenPrice = strategy._getChainlinkPrice() / 1e4;
+        console.log("index price after rebalance deposit", indexTokenPrice);
+        console.log("orderId of decrease", orderId);
+        vm.stopPrank();
+        vm.roll(block.number + 1);
+
+        {
+            address[] memory tokens = new address[](1);
+            tokens[0] = _wbnb;
+            uint256[] memory prices = new uint[](1);
+            prices[0] = indexTokenPrice;
+            vm.startPrank(PRICE_REPORTER);
+            LEVEL_ORACLE.postPrices(tokens, prices);
+        }
+
+        // EXECUTE ORDER, can be called by LevelKeeper, or anyone interest
+        {
+            uint256[] memory orders = new uint[](1);
+            orders[0] = orderId;
+            uint256[] memory swapOrders = new uint[](0);
+            TRADE_EXECUTOR.executeOrders(orders, swapOrders);
+        }
+
+        // check if position is opened
+        positionId = keccak256(abi.encode(strategy, _wbnb, _usdt, Side.SHORT));
+
+        vm.roll(block.number + 1);
+        position = LEVEL_POOL.positions(positionId);
+        console.log(
+            "position collateral value after rebalance",
+            position.collateralValue
+        );
+        console.log("position size value after rebalance", position.size);
+
+        //balanceofStablecoin of strategy
+        uint256 balanceOfStablecoin_Strategy = IERC20(_usdt).balanceOf(
+            address(strategy)
+        );
+        console.log(
+            "balanceOfStablecoin_stratedy after",
+            balanceOfStablecoin_Strategy
+        );
+
+        //balanceofStablecoin of vault
+        uint256 balanceOfStablecoin_Vault = IERC20(_usdt).balanceOf(
+            address(vault)
+        );
+        console.log(
+            "balanceOfStablecoin_vault after",
+            balanceOfStablecoin_Vault
+        );
+        vm.stopPrank();
+
+        vm.startPrank(address(vault));
+        //strategy balanceof function
+        uint256 liquidity = strategy.balanceOf();
+
+        strategy.withdraw(liquidity);
+
+        //balanceofStablecoin of vault
+        balanceOfStablecoin_Vault = IERC20(_usdt).balanceOf(address(vault));
+        console.log(
+            "balanceOfStablecoin_vault after",
+            balanceOfStablecoin_Vault
+        );
     }
 }
