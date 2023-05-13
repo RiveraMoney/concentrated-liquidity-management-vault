@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "./CakeLpStakingV2.sol";
 import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/IOrderManager.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
 
 struct ShortParams {
     address OrderManager;
