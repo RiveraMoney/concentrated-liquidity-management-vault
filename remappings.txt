@@ -6,3 +6,4 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 @pancakeswap-core/=lib/pancake-swap-core/
 @pancakeswap/=lib/pancake-smart-contracts/projects
 @uniswap=lib
+@pancakeswap-libs=node_modules/@pancakeswap-libs/

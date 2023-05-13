@@ -96,7 +96,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
     }
 
     // puts the funds to work
-    function deposit() public {
+    function depositV3() public {
         onlyVault();
         userDepositSwap();
         _deposit();

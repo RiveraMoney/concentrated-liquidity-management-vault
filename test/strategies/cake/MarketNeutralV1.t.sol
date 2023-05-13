@@ -194,7 +194,7 @@ contract MarketNeutralV1Test is Test {
         // // vm.expectEmit(false, false, false, true);
         // // emit Deposit(1e18, 1e18);
         vm.prank(address(vault));
-        strategy.splitAndDeposit{value: 3500000000000000}();
+        strategy.deposit{value: 3500000000000000}();
 
         uint256 orderId = ILevelOrderManager(_OrderManager).nextOrderId() - 1;
         uint256 indexTokenPrice = strategy._getChainlinkPrice() / 1e4;
@@ -317,7 +317,7 @@ contract MarketNeutralV1Test is Test {
         // // vm.expectEmit(false, false, false, true);
         // // emit Deposit(1e18, 1e18);
         vm.prank(address(vault));
-        strategy.splitAndDeposit{value: 3500000000000000}();
+        strategy.deposit{value: 3500000000000000}();
 
         uint256 orderId = ILevelOrderManager(_OrderManager).nextOrderId() - 1;
         uint256 indexTokenPrice = strategy._getChainlinkPrice() / 1e4;

@@ -41,7 +41,7 @@ contract MarketNeutralV1 is CakeLpStakingV2 {
         leverage = _shortParams.leverage;
     }
 
-    function splitAndDeposit() public payable {
+    function deposit() public payable {
         onlyVault();
         uint256 shortAmount = IERC20(getDepositToken()).balanceOf(
             address(this)
@@ -55,7 +55,7 @@ contract MarketNeutralV1 is CakeLpStakingV2 {
             sizeChange,
             UpdatePositionType.INCREASE
         );
-        deposit();
+        depositV3();
     }
 
     function withdrawShortPosition(
