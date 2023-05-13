@@ -11,5 +11,8 @@ artifacts/
 
 .env
 
+#Recovery Seed Phrase. Should never get leaked
+.secret
+
 #Hardhat plugin files
 typechain-types/
