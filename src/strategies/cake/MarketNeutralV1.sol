@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 struct ShortParams {
     address OrderManager;
     address indexTokenChainlink;
-    address LevelPoolLens;
     uint256 leverage;
 }
 
@@ -18,7 +17,6 @@ contract MarketNeutralV1 is CakeLpStakingV2 {
     //short variables
     address public OrderManager;
     address public indexTokenChainlink;
-    address public LevelPoolLens;
     uint256 public leverage;
 
     enum UpdatePositionType {
@@ -33,11 +31,10 @@ contract MarketNeutralV1 is CakeLpStakingV2 {
     constructor(
         CakePoolParams memory _cakePoolParams, //["0x36696169C63e42cd08ce11f5deeBbCeBae652050","0x556B9306565093C855AEA9AE92A594704c2Cd59e",["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0x55d398326f99059ff775485246999027b3197955"],["0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82","0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"],true,-57260,-57170] -57760,57060 //usdt/bnb
         CommonAddresses memory _commonAddresses, //["vault","0x13f4EA83D0bd40E75C8222255bc855a974568Dd4","0x46A15B0b27311cedF172AB29E4f4766fbE7F4364"]
-        ShortParams memory _shortParams //["0xf584A17dF21Afd9de84F47842ECEAF6042b1Bb5b","0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE","0xbB89B4910DaB84FF62EeD0A3E0892C5f5876C49a",3]
+        ShortParams memory _shortParams //["0xf584A17dF21Afd9de84F47842ECEAF6042b1Bb5b","0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE",3]
     ) CakeLpStakingV2(_cakePoolParams, _commonAddresses) {
         OrderManager = _shortParams.OrderManager;
         indexTokenChainlink = _shortParams.indexTokenChainlink;
-        LevelPoolLens = _shortParams.LevelPoolLens;
         leverage = _shortParams.leverage;
     }
 

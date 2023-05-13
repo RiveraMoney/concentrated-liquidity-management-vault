@@ -165,7 +165,6 @@ contract MarketNeutralV1Test is Test {
         ShortParams memory shortParams = ShortParams(
             _OrderManager,
             _indexTokenChainlink,
-            _LevelPoolLens,
             3
         );
         strategy = new MarketNeutralV1(
@@ -220,9 +219,11 @@ contract MarketNeutralV1Test is Test {
             TRADE_EXECUTOR.executeOrders(orders, swapOrders);
         }
         // check if position is opened
-        bytes32 positionId = keccak256(
-            abi.encode(strategy, _wbnb, _usdt, Side.SHORT)
-        );
+        // bytes32 positionId = keccak256(
+        //     abi.encode(strategy, _wbnb, _usdt, Side.SHORT)
+        // );
+
+        bytes32 positionId = keccak256(abi.encode(strategy, _wbnb, _usdt, 1));
         vm.roll(block.number + 1);
         Position memory position = LEVEL_POOL.positions(positionId);
         console.log("position collateral value", position.collateralValue);
