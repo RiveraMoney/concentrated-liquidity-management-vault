@@ -79,11 +79,6 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
 
     }
 
-    /** @dev See {IERC4626-asset}. */
-    function asset() public view virtual override returns (address) {
-        return strategy.stake();
-    }
-
     /**
      * @dev Fetches the total assets held by the vault.
      * @return totalAssets the total balance of assets held by the vault.
