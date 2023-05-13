@@ -40,8 +40,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
 
     uint256 public lastHarvest;
     uint256 public tokenID;
-    int24 tickLower;
-    int24 tickUpper;
+    int24 public tickLower;
+    int24 public tickUpper;
 
     // Routes
     address[] public rewardToLp0Route;
@@ -98,8 +98,12 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
     // puts the funds to work
     function depositV3() public {
         onlyVault();
-        userDepositSwap();
-        _deposit();
+        if (tokenID == 0) {
+            userDepositSwap();
+            _deposit();
+        } else {
+            _increaseLiquidity();
+        }
     }
 
     //user stablecoin deposit swap
@@ -447,4 +451,39 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
     function rewardToLp1() external view returns (address[] memory) {
         return rewardToLp1Route;
     }
+
+    //dummy functions
+
+    function _increaseLiquidity() public {
+        address depositToken = getDepositToken();
+        uint256 depositAssetHalf = IERC20(depositToken).balanceOf(
+            address(this)
+        ) / 2;
+        //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 0
+        if (depositToken != lpToken0) {
+            _swapV3(depositToken, lpToken0, depositAssetHalf, 500);
+        }
+
+        if (depositToken != lpToken1) {
+            _swapV3(depositToken, lpToken1, depositAssetHalf, 500);
+        }
+        uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
+        uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
+
+        (uint128 liquidity, , ) = INonfungiblePositionManager(
+            NonfungiblePositionManager
+        ).increaseLiquidity(
+                INonfungiblePositionManager.IncreaseLiquidityParams(
+                    tokenID,
+                    lp0Bal,
+                    lp1Bal,
+                    1,
+                    1,
+                    block.timestamp
+                )
+            );
+        IMasterChefV3(chef).updateLiquidity(tokenID);
+    }
+
+    //end dummy functions
 }
