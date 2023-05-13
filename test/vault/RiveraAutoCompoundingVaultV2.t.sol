@@ -5,7 +5,7 @@ import "@rivera/strategies/cake/CakeLpStakingV1.sol";
 import "@rivera/strategies/common/interfaces/IStrategy.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2Public.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
 
 ///@dev
 ///As there is dependency on Cake swap protocol. Replicating the protocol deployment on separately is difficult. Hence we would test on main net fork of BSC.

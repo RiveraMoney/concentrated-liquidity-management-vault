@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+import "@openzeppelin/token/ERC721/extensions/IERC721Enumerable.sol";
  import "forge-std/Script.sol";
  import "forge-std/console2.sol";
 

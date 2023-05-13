@@ -3,7 +3,7 @@
 
 // import "forge-std/Script.sol";
 // import "forge-std/console2.sol";
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// import "@openzeppelin/token/ERC20/IERC20.sol";
 
 // contract MyScript is Script {
 

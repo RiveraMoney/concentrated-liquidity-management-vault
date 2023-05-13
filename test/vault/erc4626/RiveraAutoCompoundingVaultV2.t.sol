@@ -6,7 +6,7 @@ import "@rivera/vaults/RiveraAutoCompoundingVaultV2Public.sol";
 import "@rivera/strategies/common/interfaces/IStrategy.sol";
 import "@rivera/strategies/common/GenericStrategyMock.sol";
 import "forge-std/console.sol";
-import "@openzeppelin/contracts/mocks/ERC20Mock.sol";
+import "@openzeppelin/mocks/ERC20Mock.sol";
 
 contract RiveraAutoCompoundingVaultV2Test is ERC4626Test {
 

@@ -4,7 +4,7 @@ import "forge-std/Test.sol";
 import "../../../src/strategies/cake/CakeLpStakingV1.sol";
 import "../../../src/strategies/common/interfaces/IStrategy.sol";
 import "../../../src/vaults/RiveraAutoCompoundingVaultV1.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
 
 ///@dev
 ///As there is dependency on Cake swap protocol. Replicating the protocol deployment on separately is difficult. Hence we would test on main net fork of BSC.

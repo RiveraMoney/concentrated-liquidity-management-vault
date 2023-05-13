@@ -1,13 +1,13 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
+import "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/access/Ownable.sol";
+import "@openzeppelin/security/Pausable.sol";
+import "@openzeppelin/security/ReentrancyGuard.sol";
 
-import "@pancakeswap/exchange-protocol/contracts/interfaces/IPancakeRouter02.sol";
-import "@pancakeswap-core/contracts/interfaces/IPancakePair.sol";
+import "@pancakeswap-v2-exchange-protocol/interfaces/IPancakeRouter02.sol";
+import "@pancakeswap-v2-core/interfaces/IPancakePair.sol";
 import "./interfaces/IMasterChef.sol";
 import "../common/AbstractStrategy.sol";
 import "../utils/StringUtils.sol";

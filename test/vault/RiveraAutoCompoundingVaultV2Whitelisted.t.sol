@@ -2,13 +2,13 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "forge-std/Test.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/mocks/ERC20Mock.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
+import "@openzeppelin/access/Ownable.sol";
+import "@openzeppelin/mocks/ERC20Mock.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2Whitelisted.sol";
 import "@rivera/strategies/common/interfaces/IStrategy.sol";
 import "@rivera/strategies/common/GenericStrategyMock.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC4626} from "@openzeppelin/interfaces/IERC4626.sol";
 import {WhitelistFilter} from "@rivera/libs/WhitelistFilter.sol";
 
 interface IMockERC20 is IERC20 {
