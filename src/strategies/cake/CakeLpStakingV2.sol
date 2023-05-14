@@ -487,7 +487,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
     // }
 
     // it calculates how much 'stake' the strategy has working in the farm.
-    function balanceOfPool() public view returns (uint256) {
+    function balanceOfPool() public view returns (uint256) {        //This function is returning in terms of liquidity I want it in terms of asset tokens
         //_amount is the LP token amount the user has provided to stake
         (uint256 liquidity, , , , , , , , ) = IMasterChefV3(chef)
             .userPositionInfos(tokenID);

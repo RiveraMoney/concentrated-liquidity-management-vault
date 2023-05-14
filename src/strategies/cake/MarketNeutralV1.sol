@@ -38,11 +38,43 @@ contract MarketNeutralV1 is CakeLpStakingV2 {
         leverage = _shortParams.leverage;
     }
 
+    function calculateShortAmount(uint256 amount) internal virtual view returns (uint256 amountShort) {
+        (uint256 amount0Ratio, uint256 amount1Ratio) = assetRatio();
+        if (amount0Ratio == 0){
+            // amountToken0 = 0;
+            if (isTokenZeroDeposit) {
+                amountShort = IFullMathLib(fullMathLib).mulDiv(amount, 1, 1 + leverage);
+                // amountToken1 = IFullMathLib(fullMathLib).mulDiv(amount, leverage, 1 + leverage);
+            } else {
+                amountShort = 0;
+                // amountToken1 = amount;
+            }
+        } else if (amount1Ratio == 0){
+            // amountToken1 = 0;
+            if (isTokenZeroDeposit) {
+                amountShort = 0;
+                // amountToken0 = amount;
+            } else {
+                amountShort = IFullMathLib(fullMathLib).mulDiv(amount, 1, 1 + leverage);
+                // amountToken0 = IFullMathLib(fullMathLib).mulDiv(amount, leverage, 1 + leverage);
+            }
+        } else {
+            if (isTokenZeroDeposit) {
+                amountShort = IFullMathLib(fullMathLib).mulDiv(amount, amount1Ratio, amount1Ratio + leverage * (amount1Ratio + amount0Ratio));
+                // amountToken0 = IFullMathLib(fullMathLib).mulDiv(amount, leverage * amount0Ratio, amount1Ratio + leverage * (amount1Ratio + amount0Ratio));
+                // amountToken1 = IFullMathLib(fullMathLib).mulDiv(amount, leverage * amount1Ratio, amount1Ratio + leverage * (amount1Ratio + amount0Ratio));
+            } else {
+                amountShort = IFullMathLib(fullMathLib).mulDiv(amount, amount0Ratio, amount0Ratio + leverage * (amount1Ratio + amount0Ratio));
+                // amountToken0 = IFullMathLib(fullMathLib).mulDiv(amount, amount0Ratio * leverage, amount0Ratio + leverage * (amount1Ratio + amount0Ratio));
+                // amountToken1 = IFullMathLib(fullMathLib).mulDiv(amount, amount1Ratio * leverage, amount0Ratio + leverage * (amount1Ratio + amount0Ratio));
+            }
+        }
+    }
+
     function deposit() public payable {
         onlyVault();
-        uint256 shortAmount = IERC20(getDepositToken()).balanceOf(
-            address(this)
-        ) / 7;
+        uint256 totalAmount = IERC20(getDepositToken()).balanceOf(address(this));
+        uint256 shortAmount = calculateShortAmount(totalAmount);
         uint256 price = _getChainlinkPrice();
         // cakePrice = price/1e4;
         uint256 sizeChange = _getSizeChange(price, shortAmount);
