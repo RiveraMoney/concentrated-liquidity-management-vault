@@ -93,6 +93,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
         liquidityAmountsLib = _cakePoolParams.liquidityAmountsLib;
         poolFee = _cakePoolParams.poolFee;
         fullMathLib = _cakePoolParams.fullMathLib;
+        lpToken0 = IPancakeV3Pool(stake).token0();
+        lpToken1 = IPancakeV3Pool(stake).token1();
         _giveAllowances();
     }
 
