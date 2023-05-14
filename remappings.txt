@@ -10,3 +10,6 @@ erc4626-tests/=lib/erc4626-tests/
 @pancakeswap-v3-router/=lib/pancake-v3-contracts/projects/router/contracts/
 @pancakeswap-v3-masterchef/=lib/pancake-v3-contracts/projects/masterchef-v3/contracts/
 @pancakeswap/=lib/pancake-v3-contracts/projects/
+@uniswap/v3-periphery/=lib/v3-periphery/
+@uniswap/v3-core/=lib/v3-core/
+@openzeppelin/contracts/=lib/openzeppelin-contracts//contracts/
