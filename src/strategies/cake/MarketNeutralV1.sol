@@ -39,7 +39,7 @@ contract MarketNeutralV1 is CakeLpStakingV2 {
     }
 
     function calculateShortAmount(uint256 amount) internal virtual view returns (uint256 amountShort) {
-        (uint256 amount0Ratio, uint256 amount1Ratio) = assetRatio();
+        (uint256 amount0Ratio, uint256 amount1Ratio) = liquidityToAmounts(1e28);
         if (amount0Ratio == 0){
             // amountToken0 = 0;
             if (isTokenZeroDeposit) {
@@ -71,7 +71,7 @@ contract MarketNeutralV1 is CakeLpStakingV2 {
         }
     }
 
-    function deposit() public payable {
+    function deposit() public virtual override payable {
         onlyVault();
         uint256 totalAmount = IERC20(getDepositToken()).balanceOf(address(this));
         uint256 shortAmount = calculateShortAmount(totalAmount);
