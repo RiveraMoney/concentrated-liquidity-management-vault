@@ -118,6 +118,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
             _mintAndAddLiquidityV3();
             _stakeNonFungibleLiquidityPosition();
         } else {
+            _userDepositToLpTokensSwap();
             _increaseLiquidity();
         }
     }
@@ -251,20 +252,6 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
     }
 
     function _increaseLiquidity() public {
-        address depositToken = getDepositToken();
-        uint256 depositAsset = IERC20(depositToken).balanceOf(address(this));
-        (
-            uint256 depositAssetToken0,
-            uint256 depositAssetToken1
-        ) = splitAmountBasedOnRange(depositAsset);
-        //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 0
-        if (depositToken != lpToken0) {
-            _swapV3(depositToken, lpToken0, depositAssetToken0, poolFee);
-        }
-
-        if (depositToken != lpToken1) {
-            _swapV3(depositToken, lpToken1, depositAssetToken1, poolFee);
-        }
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
 
@@ -401,8 +388,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
         onlyVault();
 
         uint128 liquidityDelta = calculateLiquidityDeltaForAssetAmount(_amount);
-        (uint256 amount0, uint256 amount1) = IMasterChefV3(chef)
-            .decreaseLiquidity(
+        IMasterChefV3(chef).decreaseLiquidity(
                 INonfungiblePositionManager.DecreaseLiquidityParams(
                     tokenID,
                     liquidityDelta,
@@ -411,14 +397,6 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
                     block.timestamp
                 )
             );
-        IMasterChefV3(chef).collect(
-            INonfungiblePositionManager.CollectParams(
-                tokenID,
-                address(this),
-                uint128(amount0),
-                uint128(amount1)
-            )
-        );
         _lptoDepositTokenSwap();
         uint256 depositTokenBal = IERC20(getDepositToken()).balanceOf(
             address(this)
@@ -451,6 +429,20 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
                 msg.sender,
                 uint256(increasedLiquidity),
                 balanceOf()
+            );
+        }
+        ( , , , , , , , , , ,
+            uint128 tokensOwed0,
+            uint128 tokensOwed1
+        ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenID);
+        if (tokensOwed0 > 0 || tokensOwed1 > 0) {
+            IMasterChefV3(chef).collect(
+                INonfungiblePositionManager.CollectParams(
+                    tokenID,
+                    address(this),
+                    type(uint128).max,
+                    type(uint128).max
+                )
             );
         }
     }
@@ -548,6 +540,18 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
         return rewardsAvbl;
     }
 
+    function lpRewardsAvailable() public view returns (uint256) {
+        ( , , , , , , , , , ,
+            uint128 tokensOwed0,
+            uint128 tokensOwed1
+        ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenID);
+        if (isTokenZeroDeposit) {
+            return tokensOwed0 + convertAmount1ToAmount0(tokensOwed1);
+        } else {
+            return tokensOwed1 + convertAmount0ToAmount1(tokensOwed0);
+        }
+    }
+
     // called as part of strat migration. Sends all the available funds back to the vault.
     function retireStrat() external {
         onlyVault();
@@ -588,7 +592,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder {
     }
 
     function _giveAllowances() internal {
-        // IERC20(stake).safeApprove(chef, type(uint256).max);
+        IERC20(reward).safeApprove(router, 0);
         IERC20(reward).safeApprove(router, type(uint256).max);
 
         IERC20(lpToken0).safeApprove(router, 0);
