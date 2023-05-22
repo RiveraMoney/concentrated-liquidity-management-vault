@@ -33,6 +33,8 @@ interface VToken {
     function borrowBalanceCurrent(address account) external returns (uint256);
 
     function balanceOfUnderlying(address account) external returns (uint);
+
+    function redeemUnderlying(uint redeemAmount) external returns (uint);
 }
 
 interface IChainlinkPriceFeed {
@@ -180,5 +182,17 @@ contract VenusScript is Script {
             "borrow balance stored after repay",
             borrowBalanceStoredAfterRepay
         );
+
+        console.log(
+            "=====================Redeem/Withdraw full====================="
+        );
+        //balance of underlying
+        uint balanceOfUnderlying = VToken(vUSDT).balanceOfUnderlying(_user);
+        console.log("balance of underlying", balanceOfUnderlying);
+        //redeem underlying
+        VToken(vUSDT).redeemUnderlying(balanceOfUnderlying);
+
+        //balance of user
+        console.log("balance of user", IERC20(_usdt).balanceOf(_user));
     }
 }
