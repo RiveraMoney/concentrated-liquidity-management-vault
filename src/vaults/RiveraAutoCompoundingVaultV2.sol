@@ -84,7 +84,7 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
      * @return totalAssets the total balance of assets held by the vault.
      */
     function totalAssets() public view virtual override returns (uint256) {
-        return IERC20(asset()).balanceOf(address(this)).add(strategy.balanceOf());
+        return strategy.balanceOf();
     }
 
     /** @dev See {IERC4626-maxDeposit}. */
@@ -99,13 +99,9 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
     /** @dev See {IERC4626-maxMint}. */
     function maxMint(address receiver) public view virtual override returns (uint256) {
         if (strategy.paused()) return 0;
-        console.logUint(1);
         uint256 maxFromTotalTvlCap = this.convertToShares(totalTvlCap - this.totalAssets());
-        console.logUint(2);
         uint256 userCap = userTvlCap[receiver];
-        console.logUint(3);
         uint256 maxFromUserTvlCap = userCap > 0? convertToShares(userTvlCap[receiver]) - balanceOf(receiver): type(uint256).max;
-        console.logUint(4);
         return maxFromTotalTvlCap < maxFromUserTvlCap ? maxFromTotalTvlCap : maxFromUserTvlCap;
     }
 

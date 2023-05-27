@@ -185,4 +185,6 @@ interface INonfungiblePositionManager {
         address to,
         uint256 tokenId
     ) external;
+
+    function ownerOf(uint256 tokenId) external returns (address);
 }
