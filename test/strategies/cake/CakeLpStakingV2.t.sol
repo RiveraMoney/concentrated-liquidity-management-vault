@@ -53,6 +53,8 @@ contract CakeLpStakingV2Test is Test {
     address _safeCastLib = 0x4C79c18b90FE6F9051ba29CeC9CFC120564DCD98;
     address _liquidityAmountsLib = 0xBd9143688cB5E46d1a6d96bCf5833760f299cc4D;
     address _fullMathLib = 0x38D9e15E5AAD896e9be0214fCffc978b852F8A16;
+    address  _rewardtoNativeFeed=0xcB23da9EA243f53194CBc2380A6d4d9bC046161f;
+    address  _assettoNativeFeed=0xD5c40f5144848Bd4EF08a9605d860e727b991513;
 
     address[] _rewardToLp0AddressPath = [_cakeReward, _usdt];
     uint24[] _rewardToLp0FeePath = [2500];
@@ -101,7 +103,9 @@ contract CakeLpStakingV2Test is Test {
             _rewardToLp0AddressPath,
             _rewardToLp0FeePath,
             _rewardToLp1AddressPath,
-            _rewardToLp1FeePath
+            _rewardToLp1FeePath,
+            _rewardtoNativeFeed,
+            _assettoNativeFeed
             );
         strategy = new CakeLpStakingV2(cakePoolParams, _commonAddresses);
         vault.init(IStrategy(address(strategy)));
