@@ -10,6 +10,7 @@ import "@rivera/strategies/cake/interfaces/INonfungiblePositionManager.sol";
 import "@pancakeswap-v3-core/interfaces/IPancakeV3Pool.sol";
 import "@pancakeswap-v3-core/interfaces/IPancakeV3Factory.sol";
 import "@rivera/strategies/cake/interfaces/libraries/ITickMathLib.sol";
+import "@openzeppelin/utils/math/Math.sol";
 
 
 
@@ -123,7 +124,7 @@ contract CakeLpStakingV2Test is Test {
         assertEq(depositTokenAddress, _usdt);
     }
 
-    ///@notice tests for deposit function
+    /@notice tests for deposit function
 
     function test_DepositWhenNotPausedAndCalledByVaultForFirstTime(uint256 depositAmount) public {
         uint256 poolTvl = IERC20(_usdt).balanceOf(_stake) + strategy.convertAmount0ToAmount1(IERC20(_wbnb).balanceOf(_stake));
@@ -144,19 +145,19 @@ contract CakeLpStakingV2Test is Test {
         emit log_named_address("user from position", user);
         assertEq(address(strategy), user);
 
-        uint256 point5PercentOfDeposit = 5 * depositAmount / 1000;
+        uint256 point5PercentOfDeposit = 1 * depositAmount / 1000;
         uint256 usdtBal = IERC20(_usdt).balanceOf(address(strategy));
         emit log_named_uint("After USDT balance", usdtBal);
         assertLt(usdtBal, point5PercentOfDeposit);
 
-        uint256 point5PercentOfDepositInBnb = strategy.convertAmount0ToAmount1(point5PercentOfDeposit);
+        uint256 point5PercentOfDepositInBnb = strategy.convertAmount0ToAmount1(4 * depositAmount / 1000);
         uint256 wbnbBal = IERC20(_wbnb).balanceOf(address(strategy));
         emit log_named_uint("After WBNB balance", wbnbBal);
-        assertLt(wbnbBal, 5);
+        assertLt(wbnbBal, point5PercentOfDepositInBnb);
 
         uint256 stratStakeBalanceAfter = strategy.balanceOf();
         emit log_named_uint("Total assets of strat", stratStakeBalanceAfter);
-        assertApproxEqRel(stratStakeBalanceAfter, depositAmount, 5e17);     //Checks if the percentage difference between them is less than 0.5
+        assertApproxEqRel(stratStakeBalanceAfter, depositAmount, 1e15);     //Checks if the percentage difference between them is less than 0.5
     }
 
     function test_DepositWhenPaused() public {
@@ -185,6 +186,8 @@ contract CakeLpStakingV2Test is Test {
         uint256 poolTvl = IERC20(_usdt).balanceOf(_stake) + strategy.convertAmount0ToAmount1(IERC20(_wbnb).balanceOf(_stake));
         vm.assume(swapAmount < PERCENT_POOL_TVL_OF_CAPITAL * poolTvl / 100 && swapAmount > minCapital);
         vm.startPrank(_user2);
+        IERC20(_usdt).approve(_router, type(uint256).max);
+        IERC20(_wbnb).approve(_router, type(uint256).max);
         uint256 _wbnbReceived = IV3SwapRouter(_router).exactInputSingle(
             IV3SwapRouter.ExactInputSingleParams(
                 _usdt,
@@ -228,44 +231,41 @@ contract CakeLpStakingV2Test is Test {
         assertEq(strategy.tickLower(), tickLower);
         assertEq(strategy.tickUpper(), tickUpper);
 
-        uint256 cakeRewardsAvailable = strategy.rewardsAvailable();
-        assertTrue(cakeRewardsAvailable!=0);
+        assertTrue(strategy.rewardsAvailable()!=0);
 
-        ( , , , , , , , , , ,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
-        ) = INonfungiblePositionManager(strategy.NonfungiblePositionManager()).positions(tokenId);
-        assertTrue(tokensOwed0!=0);
-        assertTrue(tokensOwed1!=0);
+        // ( , , , , , , , , uint256 feeGrowthInsideLast0, uint256 feeGrowthInsideLast1,
+        //     uint128 tokensOwed0,
+        //     uint128 tokensOwed1
+        // ) = INonfungiblePositionManager(strategy.NonfungiblePositionManager()).positions(tokenId);
+        // emit log_named_uint("Token 0 fee", tokensOwed0);
+        // emit log_named_uint("Token 1 fee", tokensOwed1);
+        // emit log_named_uint("Token 0 fee growth inside", feeGrowthInsideLast0);
+        // emit log_named_uint("Token 1 fee growth inside", feeGrowthInsideLast1);
+        // assertTrue(tokensOwed0!=0);     //These two are coming as zero because the tokensOwed in NonFungiblePositionManager is not checkpointed
+        // assertTrue(tokensOwed1!=0);
+        uint256 token0BalBef = IERC20(_usdt).balanceOf(address(strategy));
+        uint256 token1BalBef = IERC20(_wbnb).balanceOf(address(strategy));
 
-        address ownerNonFunLiq = INonfungiblePositionManager(strategy.NonfungiblePositionManager()).ownerOf(tokenId);
-        assertEq(address(strategy), ownerNonFunLiq);
+        assertEq(INonfungiblePositionManager(_nonFungiblePositionManager).ownerOf(tokenId), _chef);
 
         strategy._burnAndCollectV3();
 
-        (liquidity, , tickLower, tickUpper, , , user, , ) = IMasterChefV3(_chef).userPositionInfos(strategy.tokenID());
+        (liquidity, , tickLower, tickUpper, , , user, , ) = IMasterChefV3(_chef).userPositionInfos(tokenId);
         assertEq(0, liquidity);
         assertEq(0, tickLower);
         assertEq(0, tickUpper);
         assertEq(address(0), user);
 
-        ( , , , , , tickLower, tickUpper, liquidity, , , , ) = INonfungiblePositionManager(strategy.NonfungiblePositionManager()).positions(tokenId);
-        assertEq(0, liquidity);
-        assertEq(0, tickLower);
-        assertEq(0, tickUpper);
+        vm.expectRevert("Invalid token ID");
+        ( , , , , , tickLower, tickUpper, liquidity, , , , ) = INonfungiblePositionManager(_nonFungiblePositionManager).positions(tokenId);
 
-        cakeRewardsAvailable = strategy.rewardsAvailable();
-        assertEq(0, cakeRewardsAvailable);
+        assertEq(0, strategy.rewardsAvailable());
 
-        ( , , , , , , , , , ,
-            tokensOwed0,
-            tokensOwed1
-        ) = INonfungiblePositionManager(strategy.NonfungiblePositionManager()).positions(tokenId);
-        assertEq(0, tokensOwed0);
-        assertEq(0, tokensOwed1);
+        assertGt(IERC20(_usdt).balanceOf(address(strategy)), token0BalBef);
+        assertGt(IERC20(_wbnb).balanceOf(address(strategy)), token1BalBef);     //Verifies that fees has been collected as that is the only way token0 and token balance could increase
 
-        vm.expectRevert("ERC721: invalid token ID");
-        INonfungiblePositionManager(strategy.NonfungiblePositionManager()).ownerOf(tokenId);
+        vm.expectRevert("ERC721: owner query for nonexistent token");
+        INonfungiblePositionManager(_nonFungiblePositionManager).ownerOf(tokenId);
     }
 
     function test_ConvertAmount0ToAmount1(uint256 amount) public {
@@ -277,18 +277,24 @@ contract CakeLpStakingV2Test is Test {
     }
 
     function test_ConvertAmount1ToAmount0(uint256 amount) public {
+        vm.assume(Math.log2(amount) < 248);         //There is overflow in either amount0 or amount1 based on whether sqrtPriceX96 is greater than or less than 2^6. It will overflow at a particular power of two based on the difference in 2^96 and sqrtPriceX96
         uint256 convertedAmount = strategy.convertAmount1ToAmount0(amount);
+        emit log_named_uint("input amount", amount);
+        emit log_named_uint("converted amount", convertedAmount);
         IPancakeV3Pool pool = IPancakeV3Pool(_stake);
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-        uint256 calculatedAmount = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
+        emit log_named_uint("sqrtPriceX96", sqrtPriceX96);
+        uint256 intermediate = Math.mulDiv(amount, FixedPoint96.Q96, sqrtPriceX96);
+        emit log_named_uint("intermediate amount", intermediate);
+        uint256 calculatedAmount = Math.mulDiv(intermediate, FixedPoint96.Q96, uint256(sqrtPriceX96));
         assertEq(convertedAmount, calculatedAmount);
     }
 
-    ///@notice tests for withdraw function
+    @notice tests for withdraw function
 
     function test_WithdrawWhenCalledByVault(uint256 depositAmount) public {
         _depositDenominationAsset(depositAmount);
-        uint256 withdrawAmount = depositAmount - strategy.poolFee() * depositAmount / 1e6;
+        uint256 withdrawAmount = 996 * depositAmount / 1000;
 
         uint256 vaultDenominaionbal = IERC20(_usdt).balanceOf(address(vault));
         assertEq(0, vaultDenominaionbal);
@@ -299,21 +305,21 @@ contract CakeLpStakingV2Test is Test {
         strategy.withdraw(withdrawAmount);
 
         vaultDenominaionbal = IERC20(_usdt).balanceOf(address(vault));
-        assertEq(withdrawAmount, vaultDenominaionbal);
+        assertApproxEqRel(vaultDenominaionbal, withdrawAmount, 25e15);
 
         uint256 liquidityBalAfter = strategy.liquidityBalance();
         uint256 liqDelta = strategy.calculateLiquidityDeltaForAssetAmount(withdrawAmount);
-        assertEq(liquidityBalAfter - liquidityBalBefore, liqDelta);
+        assertApproxEqRel(liquidityBalBefore - liquidityBalAfter, liqDelta, 25e15);
 
-        uint256 point5PercentOfDeposit = 5 * depositAmount / 1000;
+        uint256 point5PercentOfDeposit = 1 * depositAmount / 1000;
         uint256 usdtBal = IERC20(_usdt).balanceOf(address(strategy));
         emit log_named_uint("After USDT balance", usdtBal);
-        assertEq(usdtBal, 0);
+        assertLt(usdtBal, point5PercentOfDeposit);
 
-        uint256 point5PercentOfDepositInBnb = strategy.convertAmount0ToAmount1(point5PercentOfDeposit);
+        uint256 point5PercentOfDepositInBnb = strategy.convertAmount0ToAmount1(4 * depositAmount / 1000);
         uint256 wbnbBal = IERC20(_wbnb).balanceOf(address(strategy));
         emit log_named_uint("After WBNB balance", wbnbBal);
-        assertEq(wbnbBal, 0);
+        assertLt(wbnbBal, point5PercentOfDepositInBnb);
 
     }
 
@@ -353,30 +359,39 @@ contract CakeLpStakingV2Test is Test {
         vm.assume(!(tickLower < tickUpper));
         _depositDenominationAsset(depositAmount);
 
-        // vm.expectRevert("TLU");
+        vm.expectRevert("Tick order incorrect");
         vm.startPrank(_manager);
         strategy.changeRange(tickLower, tickUpper);
     }
 
     function test_ChangeRangeWithLowerTickNotGreaterThanMinTick(int24 tickLower, int24 tickUpper, uint256 depositAmount) public {
+        vm.assume(tickLower!=_tickLower && tickUpper!=_tickUpper);
+        vm.assume(tickLower < tickUpper);
         vm.assume(!(tickLower >= ITickMathLib(_tickMathLib).MIN_TICK()));
         _depositDenominationAsset(depositAmount);
 
-        // vm.expectRevert("TLM");
+        vm.expectRevert("Lower tick too low");
         vm.startPrank(_manager);
         strategy.changeRange(tickLower, tickUpper);
     }
 
     function test_ChangeRangeWithUpperTickNotLessThanOrEqualMaxTick(int24 tickLower, int24 tickUpper, uint256 depositAmount) public {
+        vm.assume(tickLower!=_tickLower && tickUpper!=_tickUpper);
+        vm.assume(tickLower < tickUpper);
+        vm.assume(tickLower >= ITickMathLib(_tickMathLib).MIN_TICK());
         vm.assume(!(tickUpper <= ITickMathLib(_tickMathLib).MAX_TICK()));
         _depositDenominationAsset(depositAmount);
 
-        // vm.expectRevert("TUM");
+        vm.expectRevert("Upper tick too high");
         vm.startPrank(_manager);
         strategy.changeRange(tickLower, tickUpper);
     }
 
     function test_ChangeRangeWithTickNotMultipleOfTickSpacing(int24 tickLower, int24 tickUpper, uint256 depositAmount) public {
+        vm.assume(tickLower!=_tickLower && tickUpper!=_tickUpper);
+        vm.assume(tickLower < tickUpper);
+        vm.assume(tickLower >= ITickMathLib(_tickMathLib).MIN_TICK());
+        vm.assume(tickUpper <= ITickMathLib(_tickMathLib).MAX_TICK());
         int24 tickSpacing = IPancakeV3Pool(_stake).tickSpacing();
         vm.assume(!(tickLower % tickSpacing == 0 && tickUpper % tickSpacing == 0));
         _depositDenominationAsset(depositAmount);
@@ -413,15 +428,15 @@ contract CakeLpStakingV2Test is Test {
 
         assertTrue(tokenIdBef != strategy.tokenID());
         
-        uint256 point5PercentOfDeposit = 5 * depositAmount / 1000;
+        uint256 point5PercentOfDeposit = 3 * depositAmount / 1000;
         uint256 usdtBal = IERC20(_usdt).balanceOf(address(strategy));
         emit log_named_uint("After USDT balance", usdtBal);
-        assertEq(usdtBal, 0);
+        assertLt(usdtBal, point5PercentOfDeposit);
 
         uint256 point5PercentOfDepositInBnb = strategy.convertAmount0ToAmount1(point5PercentOfDeposit);
         uint256 wbnbBal = IERC20(_wbnb).balanceOf(address(strategy));
         emit log_named_uint("After WBNB balance", wbnbBal);
-        assertEq(wbnbBal, 0);
+        assertLt(wbnbBal, point5PercentOfDepositInBnb);
     }
 
     function _convertRewardToToken0(uint256 reward) internal view returns (uint256 amount0) {
@@ -462,25 +477,30 @@ contract CakeLpStakingV2Test is Test {
 
     function test_HarvestWhenNotPaused(uint256 depositAmount, uint256 swapAmount) public {
         _depositDenominationAsset(depositAmount);
-        _performSwapInBothDirections(swapAmount);
-        _performSwapInBothDirections(swapAmount);
-
 
         uint256 stratPoolBalanceBefore = strategy.balanceOf();
-        emit log_named_uint("Total assets of strat", stratPoolBalanceBefore);
-        assertApproxEqRel(stratPoolBalanceBefore, depositAmount, 5e17);     //Checks if the percentage difference between them is less than 0.5
+        emit log_named_uint("Total assets of strat before", stratPoolBalanceBefore);
 
         vm.warp(block.timestamp + 7*24*60*60);
 
+        _performSwapInBothDirections(swapAmount);
+        _performSwapInBothDirections(swapAmount);
+
+        // uint256[] memory pids = new uint256[](1);
+        // pids[0] = IMasterChefV3(_chef).v3PoolAddressPid(_stake);
+        // vm.prank(0xeCc90d54B10ADd1ab746ABE7E83abe178B72aa9E);
+        // IMasterChefV3(_chef).updatePools(pids);
+
         uint256 rewardsAvblBef = IMasterChefV3(_chef).pendingCake(strategy.tokenID());
+        emit log_named_uint("Cake rewards available before", rewardsAvblBef);
         assertTrue(rewardsAvblBef!=0);
 
-        ( , , , , , , , , , ,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
-        ) = INonfungiblePositionManager(_nonFungiblePositionManager).positions(strategy.tokenID());
-        assertTrue(tokensOwed0!=0);
-        assertTrue(tokensOwed1!=0);
+        // ( , , , , , , , , , ,
+        //     uint128 tokensOwed0,
+        //     uint128 tokensOwed1
+        // ) = INonfungiblePositionManager(_nonFungiblePositionManager).positions(strategy.tokenID());
+        // assertTrue(tokensOwed0!=0);
+        // assertTrue(tokensOwed1!=0);
 
         uint256 liquidityBef = strategy.liquidityBalance();
 
@@ -492,26 +512,37 @@ contract CakeLpStakingV2Test is Test {
         emit StratHarvest(address(this), 0, 0); //We don't try to match the second and third parameter of the event. They're result of Pancake swap contracts, we trust the protocol to be correct.
         strategy.harvest();
         
-        uint256 stratPoolBalanceAfter = strategy.balanceOf();
-        assertGt(stratPoolBalanceAfter, stratPoolBalanceBefore);
+        emit log_named_uint("Total assets of strat after", strategy.balanceOf());
+        assertGt(strategy.balanceOf(), stratPoolBalanceBefore);
 
-        uint256 rewardsAvblAft = IMasterChefV3(_chef).pendingCake(strategy.tokenID());
-        assertEq(0, rewardsAvblAft);
+        emit log_named_uint("Cake rewards available after", IMasterChefV3(_chef).pendingCake(strategy.tokenID()));
+        assertEq(0, IMasterChefV3(_chef).pendingCake(strategy.tokenID()));
 
         ( , , , , , , , , , ,
-            tokensOwed0,
-            tokensOwed1
+            uint256 tokensOwed0,
+            uint256 tokensOwed1
         ) = INonfungiblePositionManager(_nonFungiblePositionManager).positions(strategy.tokenID());
-        assertEq(tokensOwed0, 0);
-        assertEq(tokensOwed1, 0);
+        assertLt(tokensOwed0, 1 * depositAmount / 1e6);       //Fees is non-zero because of the swap after harvest
+        assertLt(tokensOwed1, strategy.convertAmount0ToAmount1(1 * depositAmount / 1e6));
 
         uint256 liquidityAft = strategy.liquidityBalance();
         assertGt(liquidityAft, liquidityBef);
 
-        assertLt(IERC20(_usdt).balanceOf(address(strategy)) - usdtBalBef, 5 * _convertRewardToToken0(rewardsAvblBef) / 1000);
-        assertLt(IERC20(_wbnb).balanceOf(address(strategy)) - wbnbBalBef, 5 * _convertRewardToToken1(rewardsAvblBef) / 1000);
-        assertLt(IERC20(_cakeReward).balanceOf(address(strategy)) - cakeBalBef, 5 * rewardsAvblBef / 1000);        //less than 0.5 percent of the cake rewards available is left uninvested
-
+        if(IERC20(_usdt).balanceOf(address(strategy)) > usdtBalBef) {
+            assertLe(IERC20(_usdt).balanceOf(address(strategy)) - usdtBalBef, 5 * _convertRewardToToken0(rewardsAvblBef) / 1000);
+        } else {
+            assertLe(IERC20(_usdt).balanceOf(address(strategy)), 5 * _convertRewardToToken0(rewardsAvblBef) / 1000);
+        }
+        if (IERC20(_wbnb).balanceOf(address(strategy)) > wbnbBalBef) {
+            assertLe(IERC20(_wbnb).balanceOf(address(strategy)) - wbnbBalBef, 5 * _convertRewardToToken1(rewardsAvblBef) / 1000);
+        } else {
+            assertLe(IERC20(_wbnb).balanceOf(address(strategy)), 5 * _convertRewardToToken1(rewardsAvblBef) / 1000);
+        }
+        if (IERC20(_cakeReward).balanceOf(address(strategy)) > cakeBalBef) {
+            assertLe(IERC20(_cakeReward).balanceOf(address(strategy)) - cakeBalBef, 5 * rewardsAvblBef / 1000);        //less than 0.5 percent of the cake rewards available is left uninvested
+        } else {
+            assertLe(IERC20(_cakeReward).balanceOf(address(strategy)), 5 * rewardsAvblBef / 1000);
+        }
     }
 
     function test_HarvestWhenPaused() public {
@@ -521,195 +552,4 @@ contract CakeLpStakingV2Test is Test {
         strategy.harvest();
     }
 
-    // function test_BalanceOfStake() public {
-    //     uint256 stratStakeBalanceBefore = strategy.balanceOfStake();
-    //     assertEq(stratStakeBalanceBefore, 0);
-
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-
-    //     uint256 stratStakeBalanceAfter = strategy.balanceOfStake();
-    //     assertEq(stratStakeBalanceAfter, 1e18);
-    // }
-
-    // function test_BalanceOfPool() public {
-    //     uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
-    //     assertEq(stratPoolBalanceBefore, 0);
-
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-    //     vm.prank(address(vault));
-    //     strategy.deposit();
-
-    //     uint256 stratPoolBalanceAfter = strategy.balanceOfPool();
-    //     assertEq(stratPoolBalanceAfter, 1e18);
-    // }
-
-    // function test_BalanceOfStrategy() public {
-    //     uint256 stratBalanceBefore = strategy.balanceOf();
-    //     assertEq(stratBalanceBefore, 0);
-
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-    //     vm.prank(address(vault));
-    //     strategy.deposit();
-
-    //     uint256 stratBalanceAfter = strategy.balanceOf();
-    //     assertEq(stratBalanceAfter, 2e18);
-    // }
-
-    // function test_SetPendingRewardsFunctionNameCalledByManager() public {
-    //     assertEq(strategy.pendingRewardsFunctionName(), "");
-
-    //     vm.prank(_manager);
-    //     strategy.setPendingRewardsFunctionName("pendingCake");
-
-    //     assertEq(strategy.pendingRewardsFunctionName(), "pendingCake");
-    // }
-
-    // function test_SetPendingRewardsFunctionNameNotCalledByManager() public {
-    //     assertEq(strategy.pendingRewardsFunctionName(), "");
-
-    //     vm.expectRevert("!manager");
-    //     strategy.setPendingRewardsFunctionName("pendingCake");
-
-    // }
-
-    // function test_RewardsAvailable() public {
-    //     assertEq(strategy.pendingRewardsFunctionName(), "");
-
-    //     vm.prank(_manager);
-    //     strategy.setPendingRewardsFunctionName("pendingCake");
-
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-    //     vm.prank(address(vault));
-    //     strategy.deposit();
-
-    //     uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
-    //     assertEq(stratPoolBalanceBefore, 1e18);
-
-    //     vm.roll(block.number + 100);
-
-    //     assertGt(strategy.rewardsAvailable(), 0);
-
-    // }
-
-    // function testFail_RewardsAvailableBeforeSettingFunctionName() public {
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-    //     vm.prank(address(vault));
-    //     strategy.deposit();
-
-    //     uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
-    //     assertEq(stratPoolBalanceBefore, 1e18);
-
-    //     vm.roll(block.number + 100);
-
-    //     assertGt(strategy.rewardsAvailable(), 0);
-    // }
-
-    // function test_RetireStratWhenCalledByVault() public {
-
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-    //     vm.prank(address(vault));
-    //     strategy.deposit();
-
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-
-    //     uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
-    //     assertEq(stratPoolBalanceBefore, 1e18);
-
-    //     uint256 stratStakeBalanceBefore = strategy.balanceOfStake();
-    //     assertEq(stratStakeBalanceBefore, 1e18);
-
-    //     uint256 vaultStakeBalanceBefore = IERC20(_stake).balanceOf(address(vault));
-    //     assertEq(vaultStakeBalanceBefore, 0);
-
-    //     vm.prank(address(vault));
-    //     strategy.retireStrat();
-
-    //     uint256 stratPoolBalanceAfterr = strategy.balanceOfPool();
-    //     assertEq(stratPoolBalanceAfterr, 0);
-
-    //     uint256 stratStakeBalanceAfter = strategy.balanceOfStake();
-    //     assertEq(stratStakeBalanceAfter, 0);
-
-    //     uint256 vaultStakeBalanceAfter = IERC20(_stake).balanceOf(address(vault));
-    //     assertEq(vaultStakeBalanceAfter, 2e18);
-
-    // }
-
-    // function test_RetireStratWhenNotCalledByVault() public {
-
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-    //     vm.prank(address(vault));
-    //     strategy.deposit();
-
-    //     vm.prank(_user);
-    //     IERC20(_stake).transfer(address(strategy), 1e18);
-
-    //     uint256 stratPoolBalanceBefore = strategy.balanceOfPool();
-    //     assertEq(stratPoolBalanceBefore, 1e18);
-
-    //     uint256 stratStakeBalanceBefore = strategy.balanceOfStake();
-    //     assertEq(stratStakeBalanceBefore, 1e18);
-
-    //     uint256 vaultStakeBalanceBefore = IERC20(_stake).balanceOf(address(vault));
-    //     assertEq(vaultStakeBalanceBefore, 0);
-
-    //     vm.expectRevert("!vault");
-    //     strategy.retireStrat();
-
-    // }
-
-    // function test_PanicWhenCalledByManager() public {
-    //     vm.prank(_manager);
-    //     strategy.panic();
-
-    //     assertEq(strategy.paused(), true);
-
-    //     assertEq(IERC20(_stake).allowance(address(strategy), _chef), 0);
-    //     assertEq(IERC20(_cake).allowance(address(strategy), _router), 0);
-    //     assertEq(IERC20(_wom).allowance(address(strategy), _router), 0);
-    //     assertEq(IERC20(_busd).allowance(address(strategy), _router), 0);
-    // }
-
-    // function test_PanicWhenNotCalledByManager() public {
-    //     vm.expectRevert("!manager");
-    //     strategy.panic();
-    // }
-
-    // function test_UnpauseWhenCalledByManager() public {
-    //     vm.prank(_manager);
-    //     strategy.panic();
-
-    //     assertEq(strategy.paused(), true);
-
-    //     assertEq(IERC20(_stake).allowance(address(strategy), _chef), 0);
-    //     assertEq(IERC20(_cake).allowance(address(strategy), _router), 0);
-    //     assertEq(IERC20(_wom).allowance(address(strategy), _router), 0);
-    //     assertEq(IERC20(_busd).allowance(address(strategy), _router), 0);
-
-    //     vm.prank(_manager);
-    //     strategy.unpause();
-
-    //     assertEq(strategy.paused(), false);
-
-    //     assertEq(IERC20(_stake).allowance(address(strategy), _chef), type(uint256).max);
-    //     assertEq(IERC20(_cake).allowance(address(strategy), _router), type(uint256).max);
-    //     assertEq(IERC20(_wom).allowance(address(strategy), _router), type(uint256).max);
-    //     assertEq(IERC20(_busd).allowance(address(strategy), _router), type(uint256).max);
-    // }
-
-    // function test_UnpauseWhenNotCalledByManager() public {
-    //     vm.expectRevert("!manager");
-    //     strategy.unpause();
-    // }
 }

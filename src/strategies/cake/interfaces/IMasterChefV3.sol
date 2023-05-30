@@ -19,6 +19,10 @@ interface IMasterChefV3 {
             uint256
         );
 
+    function v3PoolAddressPid(address pool) external view returns (uint256);
+
+    function updatePools(uint256[] calldata pids) external;
+
     function pendingCake(uint256 _tokenId) external view returns (uint256);
 
     function withdraw(

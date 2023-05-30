@@ -11,6 +11,7 @@ import "@rivera/strategies/cake/interfaces/libraries/ISqrtPriceMathLib.sol";
 import "@rivera/strategies/cake/interfaces/libraries/ILiquidityMathLib.sol";
 // import "@rivera/strategies/cake/interfaces/libraries/ISafeCastLib.sol";
 import "@openzeppelin/utils/math/SafeCast.sol";
+import "@openzeppelin/utils/math/Math.sol";
 import "@rivera/strategies/cake/interfaces/libraries/ILiquidityAmountsLib.sol";
 import "@rivera/strategies/cake/interfaces/libraries/IFullMathLib.sol";
 
@@ -106,8 +107,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
         stake = _cakePoolParams.stake;
         chef = _cakePoolParams.chef;
         reward = _cakePoolParams.reward;
-        require(_cakePoolParams.rewardToLp0AddressPath.length == _cakePoolParams.rewardToLp0FeePath.length - 1, "Invalid Paths");
-        require(_cakePoolParams.rewardToLp1AddressPath.length == _cakePoolParams.rewardToLp1FeePath.length - 1, "Invalid Paths");
+        require(_cakePoolParams.rewardToLp0FeePath.length == _cakePoolParams.rewardToLp0AddressPath.length - 1, "Invalid Paths");
+        require(_cakePoolParams.rewardToLp1FeePath.length == _cakePoolParams.rewardToLp1AddressPath.length - 1, "Invalid Paths");
         rewardToLp0AddressPath = _cakePoolParams.rewardToLp0AddressPath;
         rewardToLp0FeePath = _cakePoolParams.rewardToLp0FeePath;
         rewardToLp1AddressPath = _cakePoolParams.rewardToLp1AddressPath;
@@ -142,11 +143,11 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
     // puts the funds to work
     function depositV3() public {
         if (tokenID == 0) {         //Strategy does not have an active non fungible liquidity position
-            _userDepositToLpTokensSwap();
+            _swapAssetsToNewRangeRatio();
             _mintAndAddLiquidityV3();
             _stakeNonFungibleLiquidityPosition();
         } else {
-            _userDepositToLpTokensSwap();
+            _swapAssetsToNewRangeRatio();
             _increaseLiquidity();
         }
     }
@@ -201,20 +202,20 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
     function convertAmount1ToAmount0(uint256 amount1) public view returns (uint256 amount0) {
         IPancakeV3Pool pool = IPancakeV3Pool(stake);
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-        amount0 = IFullMathLib(fullMathLib).mulDiv(IFullMathLib(fullMathLib).mulDiv(amount1, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
+        amount0 = Math.mulDiv(Math.mulDiv(amount1, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
     }
 
-    function splitAmountBasedOnRange(uint256 amount, bool forSwap) public view returns (uint256 amountToken0, uint256 amountToken1) {
+    function splitAmountBasedOnRange(uint256 amount) public view returns (uint256 amountToken0, uint256 amountToken1) {
         (uint256 amount0, uint256 amount1) = this.liquidityToAmounts(1e28);
         uint256 amount0Ratio = this.convertAmount0ToAmount1(amount0);
         uint256 amount1Ratio = amount1;
-        if (forSwap) {
+        // if (forSwap) {
             if (isTokenZeroDeposit) {
                 amount1Ratio = amount1Ratio + poolFee * amount1Ratio / 1e6;
             } else {
                 amount0Ratio = amount0Ratio + poolFee * amount0Ratio / 1e6;
             }
-        }
+        // }
         if (amount0Ratio == 0) {
             amountToken0 = 0;
             amountToken1 = amount;
@@ -236,25 +237,25 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
     }
 
     //user stablecoin deposit swap
-    function _userDepositToLpTokensSwap() internal {
-        address depositToken = getDepositToken();
-        uint256 depositAsset = IERC20(depositToken).balanceOf(address(this));
-        (
-            uint256 depositAssetToken0,
-            uint256 depositAssetToken1
-        ) = this.splitAmountBasedOnRange(depositAsset, true);
+    // function _userDepositToLpTokensSwap() internal {
+    //     address depositToken = getDepositToken();
+    //     uint256 depositAsset = IERC20(depositToken).balanceOf(address(this));
+    //     (
+    //         uint256 depositAssetToken0,
+    //         uint256 depositAssetToken1
+    //     ) = this.splitAmountBasedOnRange(depositAsset);
 
-        //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 0
-        if (depositToken != lpToken0 && depositAssetToken0!=0) {
-            _swapV3(depositToken, lpToken0, depositAssetToken0, poolFee);
-        }
+    //     //Using Uniswap to convert half of the CAKE tokens into Liquidity Pair token 0
+    //     if (depositToken != lpToken0 && depositAssetToken0!=0) {
+    //         _swapV3(depositToken, lpToken0, depositAssetToken0, poolFee);
+    //     }
 
-        if (depositToken != lpToken1 && depositAssetToken1!=0) {
-            _swapV3(depositToken, lpToken1, depositAssetToken1, poolFee);
-        }
-    }
+    //     if (depositToken != lpToken1 && depositAssetToken1!=0) {
+    //         _swapV3(depositToken, lpToken1, depositAssetToken1, poolFee);
+    //     }
+    // }
 
-    function _mintAndAddLiquidityV3() internal {
+    function _mintAndAddLiquidityV3() public {
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
 
@@ -278,7 +279,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
         tokenID = tokenId;
     }
 
-    function _stakeNonFungibleLiquidityPosition() internal whenNotPaused nonReentrant {
+    function _stakeNonFungibleLiquidityPosition() public whenNotPaused nonReentrant {
         //Entire LP balance of the strategy contract address is deployed to the farm to earn CAKE
         INonfungiblePositionManager(NonfungiblePositionManager)
             .safeTransferFrom(address(this), chef, tokenID);
@@ -303,7 +304,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
         IMasterChefV3(chef).updateLiquidity(tokenID);
     }
 
-    function _burnAndCollectV3() public nonReentrant {
+    function _burnAndCollectV3() public nonReentrant returns (uint256 amount0, uint256 amount1) {
         uint128 liquidity = liquidityBalance();
         require(liquidity > 0, "No Liquidity available");
         IMasterChefV3(chef).withdraw(tokenID, address(this)); //transfer the nft back to the user
@@ -319,60 +320,63 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
                 )
             );
 
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
-        ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(
-                tokenID
-            );
-
-        INonfungiblePositionManager(NonfungiblePositionManager).collect(
+        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(
             INonfungiblePositionManager.CollectParams(
                 tokenID,
                 address(this),
-                tokensOwed0,
-                tokensOwed1
+                type(uint128).max,
+                type(uint128).max
             )
         );
         INonfungiblePositionManager(NonfungiblePositionManager).burn(tokenID);
+        tokenID = 0;
     }
 
     /// @dev Common checks for valid tick inputs. From Uniswap V3 pool
     function checkTicks(int24 tickLower_, int24 tickUpper_) private view {
-        require(tickLower_ < tickUpper_, "TLU");
-        require(tickLower_ >= ITickMathLib(tickMathLib).MIN_TICK(), "TLM");
-        require(tickUpper_ <= ITickMathLib(tickMathLib).MAX_TICK(), "TUM");
+        require(tickLower_ < tickUpper_, "Tick order incorrect");
+        require(tickLower_ >= ITickMathLib(tickMathLib).MIN_TICK(), "Lower tick too low");
+        require(tickUpper_ <= ITickMathLib(tickMathLib).MAX_TICK(), "Upper tick too high");
         int24 tickSpacing = IPancakeV3Pool(stake).tickSpacing();
         require(tickLower_ % tickSpacing == 0 && tickUpper_ % tickSpacing == 0, "Invalid Ticks");
     }
 
     /// @dev Function to change the asset holding of the strategy contract to new ratio that is the result of change range
-    function _swapAssetsToNewRangeRatio() internal {
+    function _swapAssetsToNewRangeRatio() public {
         uint256 currAmount0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 currAmount1Bal = IERC20(lpToken1).balanceOf(address(this));
-        (uint256 amount0, uint256 amount1) = liquidityToAmounts(1e28);
+        require(!(currAmount0Bal==0 && currAmount1Bal==0), "No assets in vault");
+        (uint256 amount0, uint256 amount1) = this.liquidityToAmounts(1e28);
         uint256 x; uint256 y;
-        if (currAmount0Bal > currAmount1Bal) { //This check is to make sure the ratio doesn't get 0 which checking which ratio is greater
-            if (currAmount0Bal / currAmount1Bal > amount0 / amount1) {
-                x = convertAmount1ToAmount0(IFullMathLib(fullMathLib).mulDiv(amount1, currAmount0Bal, amount0) - currAmount1Bal);
-            } else {
-                y = convertAmount0ToAmount1(IFullMathLib(fullMathLib).mulDiv(amount0, currAmount1Bal, amount1) - currAmount0Bal);
-            }
+        if (amount0 == 0) {
+            x = currAmount0Bal;
+        } else if (amount1 == 0) {
+            y = currAmount1Bal;
         } else {
-            if (currAmount1Bal / currAmount0Bal > amount1 / amount0) {
-                y = convertAmount0ToAmount1(IFullMathLib(fullMathLib).mulDiv(amount0, currAmount1Bal, amount1) - currAmount0Bal);
+            if (currAmount0Bal > currAmount1Bal) { //This check is to make sure the ratio doesn't get 0 when checking which ratio is greater
+                if (currAmount1Bal==0) {
+                    x = IFullMathLib(fullMathLib).mulDiv(amount1, currAmount0Bal, this.convertAmount0ToAmount1(amount0) + amount1 + amount1*poolFee/1e6);
+                } else {
+                    if (currAmount0Bal / currAmount1Bal > amount0 / amount1) {
+                        x = IFullMathLib(fullMathLib).mulDiv(amount1, currAmount0Bal, this.convertAmount0ToAmount1(amount0) + amount1 + amount1*poolFee/1e6) - 
+                        IFullMathLib(fullMathLib).mulDiv(amount0, currAmount1Bal, this.convertAmount0ToAmount1(amount0) + amount1 + amount1*poolFee/1e6);
+                    } else {
+                        y = IFullMathLib(fullMathLib).mulDiv(amount0, currAmount1Bal, this.convertAmount1ToAmount0(amount1) + amount0 + amount0*poolFee/1e6) - 
+                        IFullMathLib(fullMathLib).mulDiv(amount1, currAmount0Bal, this.convertAmount1ToAmount0(amount1) + amount0 + amount0*poolFee/1e6);
+                    }
+                }
             } else {
-                x = convertAmount1ToAmount0(IFullMathLib(fullMathLib).mulDiv(amount1, currAmount0Bal, amount0) - currAmount1Bal);
+                if (currAmount0Bal == 0) {
+                    y = IFullMathLib(fullMathLib).mulDiv(amount0, currAmount1Bal, this.convertAmount1ToAmount0(amount1) + amount0 + amount0*poolFee/1e6);
+                } else {
+                    if (currAmount1Bal / currAmount0Bal > amount1 / amount0) {
+                        y = IFullMathLib(fullMathLib).mulDiv(amount0, currAmount1Bal, this.convertAmount1ToAmount0(amount1) + amount0 + amount0*poolFee/1e6) - 
+                        IFullMathLib(fullMathLib).mulDiv(amount1, currAmount0Bal, this.convertAmount1ToAmount0(amount1) + amount0 + amount0*poolFee/1e6);
+                    } else {
+                        x = IFullMathLib(fullMathLib).mulDiv(amount1, currAmount0Bal, this.convertAmount0ToAmount1(amount0) + amount1 + amount1*poolFee/1e6) - 
+                        IFullMathLib(fullMathLib).mulDiv(amount0, currAmount1Bal, this.convertAmount0ToAmount1(amount0) + amount1 + amount1*poolFee/1e6);
+                    }
+                }
             }
         }
         if (x!=0) {
@@ -391,22 +395,78 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
         _burnAndCollectV3();        //This will return token0 and token1 in a ratio that is corresponding to the current range not the one we're setting it to
         tickLower = _tickLower;
         tickUpper = _tickUpper;
-        _swapAssetsToNewRangeRatio();
-        _mintAndAddLiquidityV3();
-        _stakeNonFungibleLiquidityPosition();
+        this._swapAssetsToNewRangeRatio();
+        this._mintAndAddLiquidityV3();
+        this._stakeNonFungibleLiquidityPosition();
         emit RangeChange(tickLower, tickUpper);
     }
 
+    // function calculateLiquidityDeltaForAssetAmount(uint256 assetAmount) public view returns (uint128 liquidityDelta) {
+    //     (uint256 depositAssetToken0, uint256 depositAssetToken1) = this.splitAmountBasedOnRange(assetAmount);
+    //     int24 _tickLower = tickLower;
+    //     int24 _tickUpper = tickUpper;
+    //     IPancakeV3Pool pool = IPancakeV3Pool(stake);
+    //     (uint160 sqrtPriceX96, int24 tick, , , , , ) = pool.slot0();
+    //     if (isTokenZeroDeposit) {
+    //         if (tick < _tickLower) {
+    //             // current tick is below the passed range; liquidity can only become in range by crossing from left to
+    //             // right, when we'll need _more_ token0 (it's becoming more valuable) so user must provide it
+    //             liquidityDelta = ILiquidityAmountsLib(liquidityAmountsLib).getLiquidityForAmount0(ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickLower),
+    //                 ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), depositAssetToken0);  
+    //         } else if (tick < _tickUpper) {
+    //             liquidityDelta = ILiquidityAmountsLib(liquidityAmountsLib).getLiquidityForAmount0(sqrtPriceX96,
+    //                 ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), depositAssetToken0);
+    //         } else {
+    //             // current tick is above the passed range; liquidity can only become in range by crossing from right to
+    //             // left, when we'll need _more_ token1 (it's becoming more valuable) so user must provide it
+    //             liquidityDelta = ILiquidityAmountsLib(liquidityAmountsLib).getLiquidityForAmount1(ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickLower),
+    //                 ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), convertAmount0ToAmount1(depositAssetToken1));
+    //         }
+    //     } else {
+    //         if (tick < _tickLower) {
+    //             // current tick is below the passed range; liquidity can only become in range by crossing from left to
+    //             // right, when we'll need _more_ token0 (it's becoming more valuable) so user must provide it
+    //             liquidityDelta = ILiquidityAmountsLib(liquidityAmountsLib).getLiquidityForAmount0(ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickLower),
+    //                 ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), convertAmount1ToAmount0(depositAssetToken0));  
+    //         } else if (tick < _tickUpper) {
+    //             liquidityDelta = ILiquidityAmountsLib(liquidityAmountsLib).getLiquidityForAmount1(ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickLower),
+    //                 sqrtPriceX96, depositAssetToken1);
+    //         } else {
+    //             // current tick is above the passed range; liquidity can only become in range by crossing from right to
+    //             // left, when we'll need _more_ token1 (it's becoming more valuable) so user must provide it
+    //             liquidityDelta = ILiquidityAmountsLib(liquidityAmountsLib).getLiquidityForAmount1(ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickLower),
+    //                 ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), depositAssetToken1);
+    //         }
+    //     }
+    // }
+
     function calculateLiquidityDeltaForAssetAmount(uint256 assetAmount) public view returns (uint128 liquidityDelta) {
-        (uint256 depositAssetToken0, uint256 depositAssetToken1) = splitAmountBasedOnRange(assetAmount, false);
+        (uint256 token0Ratio, uint256 token1Ratio) = this.liquidityToAmounts(1e28);
+        uint256 amount0; uint256 amount1;
+        if (isTokenZeroDeposit) {
+            amount1 = IFullMathLib(fullMathLib).mulDiv(assetAmount, token1Ratio, token0Ratio + this.convertAmount1ToAmount0(token1Ratio - token1Ratio * poolFee / 1e6));
+            amount0 = assetAmount - this.convertAmount1ToAmount0(amount1 - amount1 * poolFee / 1e6);
+        } else {
+            amount0 = IFullMathLib(fullMathLib).mulDiv(assetAmount, token0Ratio, token1Ratio + this.convertAmount0ToAmount1(token0Ratio - token0Ratio * poolFee / 1e6));
+            amount1 = assetAmount - this.convertAmount0ToAmount1(amount0 - amount0 * poolFee / 1e6);
+        }
         int24 _tickLower = tickLower;
         int24 _tickUpper = tickUpper;
-        if (isTokenZeroDeposit) {
+        IPancakeV3Pool pool = IPancakeV3Pool(stake);
+        (uint160 sqrtPriceX96, int24 tick, , , , , ) = pool.slot0();
+        if (tick < _tickLower) {
+            // current tick is below the passed range; liquidity can only become in range by crossing from left to
+            // right, when we'll need _more_ token0 (it's becoming more valuable) so user must provide it
             liquidityDelta = ILiquidityAmountsLib(liquidityAmountsLib).getLiquidityForAmount0(ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickLower),
-                ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), depositAssetToken0);
+                ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), amount0);  
+        } else if (tick < _tickUpper) {
+            liquidityDelta = ILiquidityAmountsLib(liquidityAmountsLib).getLiquidityForAmount0(sqrtPriceX96,
+                ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), amount0);
         } else {
+            // current tick is above the passed range; liquidity can only become in range by crossing from right to
+            // left, when we'll need _more_ token1 (it's becoming more valuable) so user must provide it
             liquidityDelta = ILiquidityAmountsLib(liquidityAmountsLib).getLiquidityForAmount1(ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickLower),
-                ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), depositAssetToken1);
+                ITickMathLib(tickMathLib).getSqrtRatioAtTick(_tickUpper), convertAmount0ToAmount1(amount1));
         }
     }
 
@@ -414,7 +474,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
     function withdraw(uint256 _amount) external nonReentrant {
         onlyVault();
 
-        uint128 liquidityDelta = calculateLiquidityDeltaForAssetAmount(_amount);
+        uint128 liquidityDelta = this.calculateLiquidityDeltaForAssetAmount(_amount);
         IMasterChefV3(chef).decreaseLiquidity(
                 INonfungiblePositionManager.DecreaseLiquidityParams(
                     tokenID,
@@ -424,11 +484,15 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
                     block.timestamp
                 )
             );
-        _lptoDepositTokenSwap();
-        uint256 depositTokenBal = IERC20(getDepositToken()).balanceOf(
-            address(this)
-        );
-        IERC20(getDepositToken()).safeTransfer(vault, depositTokenBal);
+
+        (uint256 userAmount0, uint256 userAmount1) = IMasterChefV3(chef).collect(INonfungiblePositionManager.CollectParams(
+                    tokenID,
+                    address(this),
+                    type(uint128).max,
+                    type(uint128).max
+                ));
+        uint256 totalAmount = _lptoDepositTokenSwap(userAmount0, userAmount1);
+        IERC20(getDepositToken()).safeTransfer(vault, totalAmount);
         emit Withdraw(balanceOf(), _amount);
     }
 
@@ -449,21 +513,21 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
         //This essentially harvests the yeild from CAKE.
         uint256 rewardBal = IERC20(reward).balanceOf(address(this)); //reward tokens will be CAKE. Cake balance of this strategy address will be zero before harvest.
         if (rewardBal > 0) {
-            if (lpToken0 != reward && isTokenZeroDeposit) {
+            if (lpToken0 != reward && !isTokenZeroDeposit) {
                 _swapV3Path(rewardToLp0AddressPath, rewardToLp0FeePath, rewardBal);
             }
 
-            if (lpToken1 != reward && !isTokenZeroDeposit) {
+            if (lpToken1 != reward && isTokenZeroDeposit) {
                 _swapV3Path(rewardToLp1AddressPath, rewardToLp1FeePath, rewardBal);
             }
 
             lastHarvest = block.timestamp;
         }
-        ( , , , , , , , , , ,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
-        ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenID);
-        if (tokensOwed0 > 0 || tokensOwed1 > 0) {
+        // ( , , , , , , , , , ,
+        //     uint128 tokensOwed0,
+        //     uint128 tokensOwed1
+        // ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenID);
+        // if (tokensOwed0 > 0 || tokensOwed1 > 0) {
             IMasterChefV3(chef).collect(
                 INonfungiblePositionManager.CollectParams(
                     tokenID,
@@ -472,8 +536,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
                     type(uint128).max
                 )
             );
-        }
-        _swapAssetsToNewRangeRatio();
+        // }
+        this._swapAssetsToNewRangeRatio();
         uint128 increasedLiquidity = addLiquidity();
         emit StratHarvest(
                 msg.sender,
@@ -503,16 +567,17 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
         return liquidity;
     }
 
-    function _lptoDepositTokenSwap() internal {
-        uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
-        uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
+    function _lptoDepositTokenSwap(uint256 amount0, uint256 amount1) internal returns (uint256 totalDepositAsset) {
         address depositToken = getDepositToken();
-        if (depositToken != lpToken0 && lp0Bal != 0) {
-            _swapV3(lpToken0, depositToken, lp0Bal, poolFee);
+        uint256 amountOut;
+        if (depositToken != lpToken0 && amount0 != 0) {
+            amountOut = _swapV3(lpToken0, depositToken, amount0, poolFee);
+            totalDepositAsset = amount1 + amountOut;
         }
 
-        if (depositToken != lpToken1 && lp1Bal != 0) {
-            _swapV3(lpToken1, depositToken, lp1Bal, poolFee);
+        if (depositToken != lpToken1 && amount1 != 0) {
+            amountOut = _swapV3(lpToken1, depositToken, amount1, poolFee);
+            totalDepositAsset = amount0 + amountOut;
         }
     }
 
@@ -555,16 +620,16 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
     function _swapV3(
         address tokenIn,
         address tokenOut,
-        uint256 amount,
+        uint256 amountIn,
         uint24 fee
-    ) internal {
-        IV3SwapRouter(router).exactInputSingle(
+    ) internal returns (uint256 amountOut) {
+        amountOut = IV3SwapRouter(router).exactInputSingle(
             IV3SwapRouter.ExactInputSingleParams(
                 tokenIn,
                 tokenOut,
                 fee,
                 address(this),
-                amount,
+                amountIn,
                 0,
                 0
             )
@@ -574,8 +639,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
     function _swapV3Path(
         address[] memory tokenPath,
         uint24[] memory feePath,
-        uint256 amount
-    ) internal {
+        uint256 amountIn
+    ) internal returns (uint256 amountOut) {
 
         bytes memory path = abi.encodePacked(tokenPath[0]);
         
@@ -583,11 +648,11 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
             path = abi.encodePacked(path, feePath[i], tokenPath[i+1]);
         }
 
-        IV3SwapRouter(router).exactInput(
+        amountOut = IV3SwapRouter(router).exactInput(
             IV3SwapRouter.ExactInputParams(
                 path,
                 address(this),
-                amount,
+                amountIn,
                 0
             )
         );
@@ -633,8 +698,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
     // called as part of strat migration. Sends all the available funds back to the vault.
     function retireStrat() external {
         onlyVault();
-        _burnAndCollectV3();
-        _lptoDepositTokenSwap();
+        (uint256 amount0, uint256 amount1) = _burnAndCollectV3();
+        _lptoDepositTokenSwap(amount0, amount1);
         uint256 depositTokenBal = IERC20(getDepositToken()).balanceOf(
             address(this)
         );
@@ -645,8 +710,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
     function panic() public {
         onlyManager();
         pause();
-        _burnAndCollectV3();
-        _lptoDepositTokenSwap();
+        (uint256 amount0, uint256 amount1) = _burnAndCollectV3();
+        _lptoDepositTokenSwap(amount0, amount1);
         uint256 depositTokenBal = IERC20(getDepositToken()).balanceOf(
             address(this)
         );
