@@ -38,4 +38,6 @@ interface IStrategy {
     function rewardsAvailable() external view returns (uint256);
     function owner() external view returns (address);
     function manager() external view returns (address);
+    function rewardtoNativeFeed() external view returns (address);
+    function assettoNativeFeed() external view returns (address);
 }

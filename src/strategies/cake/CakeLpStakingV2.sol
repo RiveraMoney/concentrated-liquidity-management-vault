@@ -41,6 +41,8 @@ struct CakePoolParams {
     uint24[] rewardToLp0FeePath;
     address[] rewardToLp1AddressPath;
     uint24[] rewardToLp1FeePath;
+    address  rewardtoNativeFeed;
+    address  assettoNativeFeed;
 }
 
 contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, Test {
@@ -73,6 +75,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
 
     address[] public rewardToLp1AddressPath;
     uint24[] public rewardToLp1FeePath;
+    address public rewardtoNativeFeed;
+    address public assettoNativeFeed;
 
     //Events
     event StratHarvest(
@@ -117,6 +121,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, T
         (bool success, bytes memory data) = _commonAddresses.vault.call(abi.encodeWithSelector(bytes4(keccak256(bytes('asset()')))));
         require(success, "Failed to fetch asset from vault");
         isTokenZeroDeposit = abi.decode(data, (address)) == lpToken0;
+        rewardtoNativeFeed = _cakePoolParams.rewardtoNativeFeed;
+        assettoNativeFeed = _cakePoolParams.assettoNativeFeed;
         _giveAllowances();
     }
 
