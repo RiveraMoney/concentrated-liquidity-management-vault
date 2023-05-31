@@ -33,6 +33,6 @@ interface IRiveraAutoCompoundingVaultFactoryV2 {
     event VaultCreated(address indexed user, address indexed stake, address vault);
 
     function allVaults(uint) external view returns (address vault);
-    function createVault(CreateVaultParams memory createVaultParams,VaultType _vaultType) external returns (address vault);
+    function createVault(CreateVaultParams memory createVaultParams) external returns (address vault);
 
 }

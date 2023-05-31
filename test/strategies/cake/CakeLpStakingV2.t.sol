@@ -12,6 +12,8 @@ import "@pancakeswap-v3-core/interfaces/IPancakeV3Factory.sol";
 import "@rivera/strategies/cake/interfaces/libraries/ITickMathLib.sol";
 import "@openzeppelin/utils/math/Math.sol";
 
+import "@rivera/libs/DexV3Calculations.sol";
+import "@rivera/libs/DexV3CalculationStruct.sol";
 
 
 ///@dev
@@ -108,7 +110,8 @@ contract CakeLpStakingV2Test is Test {
             _rewardtoNativeFeed,
             _assettoNativeFeed
             );
-        strategy = new CakeLpStakingV2(cakePoolParams, _commonAddresses);
+        strategy = new CakeLpStakingV2();
+        strategy.init(cakePoolParams, _commonAddresses);
         vault.init(IStrategy(address(strategy)));
         vm.stopPrank();
 
@@ -124,10 +127,10 @@ contract CakeLpStakingV2Test is Test {
         assertEq(depositTokenAddress, _usdt);
     }
 
-    /@notice tests for deposit function
+    ///@notice tests for deposit function
 
     function test_DepositWhenNotPausedAndCalledByVaultForFirstTime(uint256 depositAmount) public {
-        uint256 poolTvl = IERC20(_usdt).balanceOf(_stake) + strategy.convertAmount0ToAmount1(IERC20(_wbnb).balanceOf(_stake));
+        uint256 poolTvl = IERC20(_usdt).balanceOf(_stake) + DexV3Calculations.convertAmount0ToAmount1(IERC20(_wbnb).balanceOf(_stake), _stake, _fullMathLib);
         emit log_named_uint("Total Pool TVL", poolTvl);
         vm.assume(depositAmount < PERCENT_POOL_TVL_OF_CAPITAL * poolTvl / 100 && depositAmount > minCapital);
         vm.prank(_user1);
@@ -150,7 +153,7 @@ contract CakeLpStakingV2Test is Test {
         emit log_named_uint("After USDT balance", usdtBal);
         assertLt(usdtBal, point5PercentOfDeposit);
 
-        uint256 point5PercentOfDepositInBnb = strategy.convertAmount0ToAmount1(4 * depositAmount / 1000);
+        uint256 point5PercentOfDepositInBnb = DexV3Calculations.convertAmount0ToAmount1(4 * depositAmount / 1000, _stake, _fullMathLib);
         uint256 wbnbBal = IERC20(_wbnb).balanceOf(address(strategy));
         emit log_named_uint("After WBNB balance", wbnbBal);
         assertLt(wbnbBal, point5PercentOfDepositInBnb);
@@ -174,7 +177,7 @@ contract CakeLpStakingV2Test is Test {
     }
 
     function _depositDenominationAsset(uint256 depositAmount) internal {        //Function to call in other tests that brings the vault to an already deposited state
-        uint256 poolTvl = IERC20(_usdt).balanceOf(_stake) + strategy.convertAmount0ToAmount1(IERC20(_wbnb).balanceOf(_stake));
+        uint256 poolTvl = IERC20(_usdt).balanceOf(_stake) + DexV3Calculations.convertAmount0ToAmount1(IERC20(_wbnb).balanceOf(_stake), _stake, _fullMathLib);
         vm.assume(depositAmount < PERCENT_POOL_TVL_OF_CAPITAL * poolTvl / 100 && depositAmount > minCapital);
         vm.prank(_user1);
         IERC20(_usdt).transfer(address(strategy), depositAmount);
@@ -183,7 +186,7 @@ contract CakeLpStakingV2Test is Test {
     }
 
     function _performSwapInBothDirections(uint256 swapAmount) internal {
-        uint256 poolTvl = IERC20(_usdt).balanceOf(_stake) + strategy.convertAmount0ToAmount1(IERC20(_wbnb).balanceOf(_stake));
+        uint256 poolTvl = IERC20(_usdt).balanceOf(_stake) + DexV3Calculations.convertAmount0ToAmount1(IERC20(_wbnb).balanceOf(_stake), _stake, _fullMathLib);
         vm.assume(swapAmount < PERCENT_POOL_TVL_OF_CAPITAL * poolTvl / 100 && swapAmount > minCapital);
         vm.startPrank(_user2);
         IERC20(_usdt).approve(_router, type(uint256).max);
@@ -269,7 +272,7 @@ contract CakeLpStakingV2Test is Test {
     }
 
     function test_ConvertAmount0ToAmount1(uint256 amount) public {
-        uint256 convertedAmount = strategy.convertAmount0ToAmount1(amount);
+        uint256 convertedAmount = DexV3Calculations.convertAmount0ToAmount1(amount, _stake, _fullMathLib);
         IPancakeV3Pool pool = IPancakeV3Pool(_stake);
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
         uint256 calculatedAmount = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
@@ -278,7 +281,7 @@ contract CakeLpStakingV2Test is Test {
 
     function test_ConvertAmount1ToAmount0(uint256 amount) public {
         vm.assume(Math.log2(amount) < 248);         //There is overflow in either amount0 or amount1 based on whether sqrtPriceX96 is greater than or less than 2^6. It will overflow at a particular power of two based on the difference in 2^96 and sqrtPriceX96
-        uint256 convertedAmount = strategy.convertAmount1ToAmount0(amount);
+        uint256 convertedAmount = DexV3Calculations.convertAmount1ToAmount0(amount, _stake, _fullMathLib);
         emit log_named_uint("input amount", amount);
         emit log_named_uint("converted amount", convertedAmount);
         IPancakeV3Pool pool = IPancakeV3Pool(_stake);
@@ -290,7 +293,7 @@ contract CakeLpStakingV2Test is Test {
         assertEq(convertedAmount, calculatedAmount);
     }
 
-    @notice tests for withdraw function
+    ///@notice tests for withdraw function
 
     function test_WithdrawWhenCalledByVault(uint256 depositAmount) public {
         _depositDenominationAsset(depositAmount);
@@ -308,7 +311,8 @@ contract CakeLpStakingV2Test is Test {
         assertApproxEqRel(vaultDenominaionbal, withdrawAmount, 25e15);
 
         uint256 liquidityBalAfter = strategy.liquidityBalance();
-        uint256 liqDelta = strategy.calculateLiquidityDeltaForAssetAmount(withdrawAmount);
+        uint256 liqDelta = DexV3Calculations.calculateLiquidityDeltaForAssetAmount(LiquidityToAmountCalcParams(_tickLower, _tickUpper, 1e28, _safeCastLib, _sqrtPriceMathLib, _tickMathLib, _stake), 
+        LiquidityDeltaForAssetAmountParams(_isTokenZeroDeposit, strategy.poolFee(), withdrawAmount, _fullMathLib, _liquidityAmountsLib));
         assertApproxEqRel(liquidityBalBefore - liquidityBalAfter, liqDelta, 25e15);
 
         uint256 point5PercentOfDeposit = 1 * depositAmount / 1000;
@@ -316,7 +320,7 @@ contract CakeLpStakingV2Test is Test {
         emit log_named_uint("After USDT balance", usdtBal);
         assertLt(usdtBal, point5PercentOfDeposit);
 
-        uint256 point5PercentOfDepositInBnb = strategy.convertAmount0ToAmount1(4 * depositAmount / 1000);
+        uint256 point5PercentOfDepositInBnb = DexV3Calculations.convertAmount0ToAmount1(4 * depositAmount / 1000, _stake, _fullMathLib);
         uint256 wbnbBal = IERC20(_wbnb).balanceOf(address(strategy));
         emit log_named_uint("After WBNB balance", wbnbBal);
         assertLt(wbnbBal, point5PercentOfDepositInBnb);
@@ -433,7 +437,7 @@ contract CakeLpStakingV2Test is Test {
         emit log_named_uint("After USDT balance", usdtBal);
         assertLt(usdtBal, point5PercentOfDeposit);
 
-        uint256 point5PercentOfDepositInBnb = strategy.convertAmount0ToAmount1(point5PercentOfDeposit);
+        uint256 point5PercentOfDepositInBnb = DexV3Calculations.convertAmount0ToAmount1(point5PercentOfDeposit, _stake, _fullMathLib);
         uint256 wbnbBal = IERC20(_wbnb).balanceOf(address(strategy));
         emit log_named_uint("After WBNB balance", wbnbBal);
         assertLt(wbnbBal, point5PercentOfDepositInBnb);
@@ -523,7 +527,7 @@ contract CakeLpStakingV2Test is Test {
             uint256 tokensOwed1
         ) = INonfungiblePositionManager(_nonFungiblePositionManager).positions(strategy.tokenID());
         assertLt(tokensOwed0, 1 * depositAmount / 1e6);       //Fees is non-zero because of the swap after harvest
-        assertLt(tokensOwed1, strategy.convertAmount0ToAmount1(1 * depositAmount / 1e6));
+        assertLt(tokensOwed1, DexV3Calculations.convertAmount0ToAmount1(1 * depositAmount / 1e6, _stake, _fullMathLib));
 
         uint256 liquidityAft = strategy.liquidityBalance();
         assertGt(liquidityAft, liquidityBef);
