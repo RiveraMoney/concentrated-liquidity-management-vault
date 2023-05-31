@@ -11,6 +11,11 @@ abstract contract WhitelistFilter is Ownable {
     event NewWhitelist(address indexed user, address indexed owner);
     event RemoveWhitelist(address indexed user, address indexed owner);
 
+    modifier onlyWhitelisted() {
+        _checkWhitelist();
+        _;
+    }
+
     function _checkWhitelist() internal view virtual {
         require(whitelist[msg.sender], "WhitelistFilter: !whitelisted");
     }
