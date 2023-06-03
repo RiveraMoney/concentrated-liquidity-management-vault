@@ -17,7 +17,7 @@ contract DeployRiveraFactoryV2 is Script {
     VaultType _vaultType;
 
     function setUp() public {
-        _vaultType = VaultType.PRIVATE;
+        _vaultType = VaultType.WHITELISTED;
     }
 
     function run() public {
@@ -37,8 +37,6 @@ contract DeployRiveraFactoryV2 is Script {
         }
 
         vm.stopBroadcast();
-
-
     }
 
 

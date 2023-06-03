@@ -31,6 +31,8 @@ function getRemappings() {
 task("example", "Example task").setAction(example);
 task("TransferMeTokens", "Task to transfer tokens from a whale to you").addParam("tokenwhale", "Whale who has the token")
   .addParam("token", "Address of the tokens you want").addParam("amount", "Amount of tokens you want (In full 18 decimals format)")
+  .addParam("account1", "Your account address").setAction(transferMeTokens)
+  .addParam("account2", "Your account address").setAction(transferMeTokens)
   .setAction(transferMeTokens);
 
 const config: HardhatUserConfig = {

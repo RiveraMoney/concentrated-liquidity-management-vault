@@ -34,5 +34,6 @@ interface IRiveraAutoCompoundingVaultFactoryV2 {
 
     function allVaults(uint) external view returns (address vault);
     function createVault(CreateVaultParams memory createVaultParams) external returns (address vault);
+    function listAllVaults() external view returns (address[] memory);
 
 }

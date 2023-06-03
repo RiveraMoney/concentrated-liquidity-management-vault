@@ -129,7 +129,7 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         uint256 shares
     ) internal virtual override {
         _restrictAccess();
-        strategy.beforeDeposit();
+        // strategy.beforeDeposit();
 
         IERC20(asset()).safeTransferFrom(caller, address(this), assets);
         _earn();
