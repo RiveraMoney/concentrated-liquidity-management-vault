@@ -88,7 +88,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     ///@dev
     ///@param _cakePoolParams: Has the cake pool specific params
     ///@param _commonAddresses: Has addresses common to all vaults, check Rivera Fee manager for more info
-    function init(CakePoolParams memory _cakePoolParams, CommonAddresses memory _commonAddresses) public initializer {
+    function init(CakePoolParams memory _cakePoolParams, CommonAddresses memory _commonAddresses) public virtual initializer {
         tickMathLib = _cakePoolParams.tickMathLib;
         sqrtPriceMathLib = _cakePoolParams.sqrtPriceMathLib;
         liquidityMathLib = _cakePoolParams.liquidityMathLib;
@@ -132,17 +132,20 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
 
     function deposit() public virtual whenNotPaused {
         onlyVault();
+        _deposit();
+    }
+
+    function _deposit() internal virtual {
+        _swapAssetsToNewRangeRatio();
         depositV3();
     }
 
     // puts the funds to work
     function depositV3() public {
         if (tokenID == 0) {         //Strategy does not have an active non fungible liquidity position
-            _swapAssetsToNewRangeRatio();
             _mintAndAddLiquidityV3();
             _stakeNonFungibleLiquidityPosition();
         } else {
-            _swapAssetsToNewRangeRatio();
             _increaseLiquidity();
         }
     }
@@ -231,33 +234,32 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         (uint256 x, uint256 y) = DexV3Calculations.changeInAmountsToNewRangeRatio(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
         ChangeInAmountsForNewRatioParams(poolFee, currAmount0Bal, currAmount1Bal, fullMathLib));
         if (x!=0) {
-            _swapV3(lpToken0, lpToken1, x, poolFee);
+            _swapV3In(lpToken0, lpToken1, x, poolFee);
         }
         if (y!=0) {
-            _swapV3(lpToken1, lpToken0, y, poolFee);
+            _swapV3In(lpToken1, lpToken0, y, poolFee);
         }
     }
 
     //{-52050,-42800}
-    function changeRange(int24 _tickLower, int24 _tickUpper) external {
+    function changeRange(int24 _tickLower, int24 _tickUpper) external virtual {
         _checkOwner();
         require(!(tickLower == _tickLower && tickUpper == _tickUpper), "SR");
         DexV3Calculations.checkTicks(_tickLower, _tickUpper, tickMathLib, stake);
         _burnAndCollectV3();        //This will return token0 and token1 in a ratio that is corresponding to the current range not the one we're setting it to
         tickLower = _tickLower;
         tickUpper = _tickUpper;
-        _swapAssetsToNewRangeRatio();
-        _mintAndAddLiquidityV3();
-        _stakeNonFungibleLiquidityPosition();
+        _deposit();
         emit RangeChange(tickLower, tickUpper);
     }
 
-    //here _amount is liquidity amount and not deposited token amount
-    function withdraw(uint256 _amount) external nonReentrant {
-        onlyVault();
-
+    function _withdrawV3(uint256 _amount) internal returns (uint256 userAmount0,  uint256 userAmount1) {
         uint128 liquidityDelta = DexV3Calculations.calculateLiquidityDeltaForAssetAmount(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
         LiquidityDeltaForAssetAmountParams(isTokenZeroDeposit, poolFee, _amount, fullMathLib, liquidityAmountsLib));
+        uint128 liquidityAvlbl = liquidityBalance();
+        if (liquidityDelta > liquidityAvlbl) {
+            liquidityDelta = liquidityAvlbl;
+        }
         IMasterChefV3(chef).decreaseLiquidity(
                 INonfungiblePositionManager.DecreaseLiquidityParams(
                     tokenID,
@@ -268,12 +270,18 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
                 )
             );
 
-        (uint256 userAmount0, uint256 userAmount1) = IMasterChefV3(chef).collect(INonfungiblePositionManager.CollectParams(
+        (userAmount0, userAmount1) = IMasterChefV3(chef).collect(INonfungiblePositionManager.CollectParams(
                     tokenID,
                     address(this),
                     type(uint128).max,
                     type(uint128).max
                 ));
+    }
+
+    //here _amount is liquidity amount and not deposited token amount
+    function withdraw(uint256 _amount) external virtual nonReentrant {
+        onlyVault();
+        (uint256 userAmount0, uint256 userAmount1) = _withdrawV3(_amount);
         uint256 totalAmount = _lptoDepositTokenSwap(userAmount0, userAmount1);
         IERC20(getDepositToken()).safeTransfer(vault, totalAmount);
         emit Withdraw(balanceOf(), _amount);
@@ -284,12 +292,12 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         IMasterChefV3(chef).harvest(tokenID, address(this));
         uint256 rewardBal = IERC20(reward).balanceOf(address(this));
         if (rewardBal > 0) {
-            if (lpToken0 != reward && !isTokenZeroDeposit) {
-                _swapV3Path(rewardToLp0AddressPath, rewardToLp0FeePath, rewardBal);
+            if (lpToken0 != reward && isTokenZeroDeposit) {
+                _swapV3PathIn(rewardToLp0AddressPath, rewardToLp0FeePath, rewardBal);
             }
 
-            if (lpToken1 != reward && isTokenZeroDeposit) {
-                _swapV3Path(rewardToLp1AddressPath, rewardToLp1FeePath, rewardBal);
+            if (lpToken1 != reward && !isTokenZeroDeposit) {
+                _swapV3PathIn(rewardToLp1AddressPath, rewardToLp1FeePath, rewardBal);
             }
 
             lastHarvest = block.timestamp;
@@ -302,11 +310,10 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
                 type(uint128).max
             )
         );
-        _swapAssetsToNewRangeRatio();
-        uint128 increasedLiquidity = addLiquidity();
+        _deposit();
         emit StratHarvest(
                 msg.sender,
-                uint256(increasedLiquidity),
+                rewardBal,
                 balanceOf()
             );
     }
@@ -335,12 +342,12 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         address depositToken = getDepositToken();
         uint256 amountOut;
         if (depositToken != lpToken0 && amount0 != 0) {
-            amountOut = _swapV3(lpToken0, depositToken, amount0, poolFee);
+            amountOut = _swapV3In(lpToken0, depositToken, amount0, poolFee);
             totalDepositAsset = amount1 + amountOut;
         }
 
         if (depositToken != lpToken1 && amount1 != 0) {
-            amountOut = _swapV3(lpToken1, depositToken, amount1, poolFee);
+            amountOut = _swapV3In(lpToken1, depositToken, amount1, poolFee);
             totalDepositAsset = amount0 + amountOut;
         }
     }
@@ -395,7 +402,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         assettoNativeFeed = assettoNativeFeed_;
     }
 
-    function _swapV3(
+    function _swapV3In(
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
@@ -414,7 +421,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         );
     }
 
-    function _swapV3Path(
+    function _swapV3PathIn(
         address[] memory tokenPath,
         uint24[] memory feePath,
         uint256 amountIn
@@ -448,17 +455,17 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         }
     }
 
-    function liquidityBalance() public view returns (uint128) {     //lib
+    function liquidityBalance() public view returns (uint128) {
         (uint128 liquidity, , , , , , , , ) = IMasterChefV3(chef).userPositionInfos(tokenID);
         return liquidity;
     }
 
-    function rewardsAvailable() public view returns (uint256) {     //lib
+    function rewardsAvailable() public view returns (uint256) {
         uint256 rewardsAvbl = IMasterChefV3(chef).pendingCake(tokenID);
         return rewardsAvbl;
     }
 
-    function lpRewardsAvailable() public view returns (uint256) {       //lib
+    function lpRewardsAvailable() public view returns (uint256) {
         ( , , , , , , , , , ,
             uint128 tokensOwed0,
             uint128 tokensOwed1
@@ -509,7 +516,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         deposit();
     }
 
-    function _giveAllowances() internal {
+    function _giveAllowances() internal virtual {
         IERC20(reward).safeApprove(router, 0);
         IERC20(reward).safeApprove(router, type(uint256).max);
 
@@ -532,7 +539,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         );
     }
 
-    function _removeAllowances() internal {
+    function _removeAllowances() internal virtual {
         IERC20(reward).safeApprove(router, 0);
         IERC20(lpToken0).safeApprove(router, 0);
         IERC20(lpToken1).safeApprove(router, 0);

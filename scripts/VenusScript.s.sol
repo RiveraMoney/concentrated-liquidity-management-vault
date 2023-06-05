@@ -2,55 +2,9 @@
 pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-interface IVenusDistribution {
-    function enterMarkets(
-        address[] calldata vTokens
-    ) external returns (uint[] memory);
-
-    function getAccountLiquidity(
-        address account
-    ) external view returns (uint, uint, uint);
-
-    function markets(
-        address vTokenAddress
-    ) external view returns (bool, uint, bool);
-}
-
-interface VToken {
-    function mint(uint mintAmount) external returns (uint);
-
-    function borrow(uint borrowAmount) external returns (uint);
-
-    function borrowBalanceStored(address account) external returns (uint256);
-
-    function totalSupply() external returns (uint);
-
-    function repayBorrow(uint repayAmount) external returns (uint);
-
-    ///found out
-
-    function borrowBalanceCurrent(address account) external returns (uint256);
-
-    function balanceOfUnderlying(address account) external returns (uint);
-
-    function redeemUnderlying(uint redeemAmount) external returns (uint);
-}
-
-interface IChainlinkPriceFeed {
-    function latestRoundData()
-        external
-        view
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        );
-
-    function decimals() external view returns (uint8);
-}
+import "@rivera/strategies/venus/interfaces/IVenusDistribution.sol";
+import "@rivera/strategies/venus/interfaces/IVToken.sol";
+import "@rivera/strategies/common/interfaces/IChainlinkPriceFeed.sol";
 
 contract VenusScript is Script {
     uint256 public number;
@@ -85,12 +39,12 @@ contract VenusScript is Script {
 
         //mint
         IERC20(_usdt).approve(vUSDT, 10e18);
-        VToken(vUSDT).mint(10e18);
+        IVToken(vUSDT).mint(10e18);
 
         //balance of underlying
         console.log(
             "balance of underlying",
-            VToken(vUSDT).balanceOfUnderlying(_user)
+            IVToken(vUSDT).balanceOfUnderlying(_user)
         );
 
         //call markets function
@@ -116,17 +70,17 @@ contract VenusScript is Script {
         //borrow     20000000000000000 0.02 bnb
         console.log("=====================Borrow half=====================");
 
-        uint result = VToken(vCAKE).borrow(borrowAmount / 2);
+        uint result = IVToken(vCAKE).borrow(borrowAmount / 2);
         assert(result == 0);
         //balance of cake of user
         console.log("balance of cake of user", IERC20(_cake).balanceOf(_user));
 
         //borrow balance stored
-        uint256 borrowBalanceStored = VToken(vCAKE).borrowBalanceStored(_user);
+        uint256 borrowBalanceStored = IVToken(vCAKE).borrowBalanceStored(_user);
         console.log("borrow balance stored", borrowBalanceStored);
 
         //borrow balance current
-        uint256 borrowBalanceCurrent = VToken(vCAKE).borrowBalanceCurrent(
+        uint256 borrowBalanceCurrent = IVToken(vCAKE).borrowBalanceCurrent(
             _user
         );
         console.log("borrow balance current", borrowBalanceCurrent);
@@ -139,15 +93,15 @@ contract VenusScript is Script {
         console.log(
             "=====================Borrow half again====================="
         );
-        result = VToken(vCAKE).borrow(borrowAmount / 2);
+        result = IVToken(vCAKE).borrow(borrowAmount / 2);
         assert(result == 0);
 
         //borrow balance stored
-        borrowBalanceStored = VToken(vCAKE).borrowBalanceStored(_user);
+        borrowBalanceStored = IVToken(vCAKE).borrowBalanceStored(_user);
         console.log("borrow balance stored", borrowBalanceStored);
 
         //borrow balance current
-        borrowBalanceCurrent = VToken(vCAKE).borrowBalanceCurrent(_user);
+        borrowBalanceCurrent = IVToken(vCAKE).borrowBalanceCurrent(_user);
         console.log("borrow balance current", borrowBalanceCurrent);
 
         //borrow able after full borrow
@@ -160,10 +114,10 @@ contract VenusScript is Script {
         IERC20(_cake).approve(vCAKE, borrowBalanceStored);
 
         console.log("=====================Repay half=====================");
-        VToken(vCAKE).repayBorrow(borrowBalanceStored / 2);
+        IVToken(vCAKE).repayBorrow(borrowBalanceStored / 2);
 
         //borrow balance stored after repay
-        uint256 borrowBalanceStoredAfterRepay = VToken(vCAKE)
+        uint256 borrowBalanceStoredAfterRepay = IVToken(vCAKE)
             .borrowBalanceStored(_user);
         console.log(
             "borrow balance stored after repay",
@@ -172,10 +126,10 @@ contract VenusScript is Script {
 
         console.log("=====================Repay full=====================");
 
-        VToken(vCAKE).repayBorrow((2 ** 256) - 1);
+        IVToken(vCAKE).repayBorrow((2 ** 256) - 1);
 
         //borrow balance stored after repay
-        borrowBalanceStoredAfterRepay = VToken(vCAKE).borrowBalanceStored(
+        borrowBalanceStoredAfterRepay = IVToken(vCAKE).borrowBalanceStored(
             _user
         );
         console.log(
@@ -187,10 +141,10 @@ contract VenusScript is Script {
             "=====================Redeem/Withdraw full====================="
         );
         //balance of underlying
-        uint balanceOfUnderlying = VToken(vUSDT).balanceOfUnderlying(_user);
+        uint balanceOfUnderlying = IVToken(vUSDT).balanceOfUnderlying(_user);
         console.log("balance of underlying", balanceOfUnderlying);
         //redeem underlying
-        VToken(vUSDT).redeemUnderlying(balanceOfUnderlying);
+        IVToken(vUSDT).redeemUnderlying(balanceOfUnderlying);
 
         //balance of user
         console.log("balance of user", IERC20(_usdt).balanceOf(_user));

@@ -10,12 +10,12 @@ contract PancakePublicVaultFactoryV2 is IRiveraAutoCompoundingVaultFactoryV2 {
     address[] public allVaults;
 
     ///@notice fixed params that are required to deploy the pool
-    address chef;
-    address router;
-    address NonfungiblePositionManager;
-    address manager;
-    address stratFactory;
-    VaultType immutable vaultType = VaultType.PUBLIC;
+    address public chef;
+    address public router;
+    address public NonfungiblePositionManager;
+    address public manager;
+    address public stratFactory;
+    VaultType public immutable vaultType = VaultType.PUBLIC;
 
     constructor(address _chef, address _router, address _NonfungiblePositionManager, address _stratFactory) {
         chef = _chef;
