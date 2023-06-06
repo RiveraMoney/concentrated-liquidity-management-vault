@@ -466,14 +466,11 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     }
 
     function lpRewardsAvailable() public view returns (uint256) {
-        ( , , , , , , , , , ,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
-        ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenID);
+        (uint256 lpFees0, uint256 lpFees1) = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(tokenID, stake, NonfungiblePositionManager, fullMathLib));
         if (isTokenZeroDeposit) {
-            return tokensOwed0 + DexV3Calculations.convertAmount1ToAmount0(tokensOwed1, stake, fullMathLib);
+            return lpFees0 + DexV3Calculations.convertAmount1ToAmount0(lpFees1, stake, fullMathLib);
         } else {
-            return tokensOwed1 + DexV3Calculations.convertAmount0ToAmount1(tokensOwed0, stake, fullMathLib);
+            return lpFees1 + DexV3Calculations.convertAmount0ToAmount1(lpFees0, stake, fullMathLib);
         }
     }
 

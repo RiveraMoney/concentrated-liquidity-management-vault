@@ -24,3 +24,10 @@ struct ChangeInAmountsForNewRatioParams {
     uint256 currAmount1Bal;
     address fullMathLib;
 }
+
+struct UnclaimedLpFeesParams { 
+    uint256 tokenId; 
+    address poolAddress; 
+    address nonFungiblePositionManger; 
+    address fullMathLib; 
+}

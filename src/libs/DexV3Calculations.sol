@@ -2,6 +2,8 @@ pragma solidity ^0.8.0;
 
 import "@pancakeswap-v3-core/interfaces/IPancakeV3Pool.sol";
 import "@pancakeswap-v3-core/libraries/FixedPoint96.sol";
+import "@pancakeswap-v3-core/libraries/FixedPoint128.sol";
+import "@rivera/strategies/cake/interfaces/INonfungiblePositionManager.sol";
 
 import "@rivera/strategies/cake/interfaces/libraries/ITickMathLib.sol";
 import "@rivera/strategies/cake/interfaces/libraries/ISqrtPriceMathLib.sol";
@@ -123,6 +125,54 @@ library DexV3Calculations {
                 }
             }
         }
+    }
+
+    struct UnclaimedFeeCalcInfo {
+        int24 tickLower;
+        int24 tickUpper;
+        int24 tickCurrent;
+        uint128 liquidity;
+        uint256 feeGrowthInside0LastX128;
+        uint256 feeGrowthInside1LastX128;
+        uint256 feeGrowthGlobal0;
+        uint256 feeGrowthGlobal1;
+        uint256 feeGrowthOutside0X128Lower;
+        uint256 feeGrowthOutside1X128Lower;
+        uint256 feeGrowthOutside0X128Upper;
+        uint256 feeGrowthOutside1X128Upper;
+    }
+
+    function unclaimedFeesOfLpPosition(UnclaimedLpFeesParams calldata params) public view returns (uint256, uint256) {
+        UnclaimedFeeCalcInfo memory unclFeeInfo;
+        ( , , , , , unclFeeInfo.tickLower, unclFeeInfo.tickUpper, unclFeeInfo.liquidity, unclFeeInfo.feeGrowthInside0LastX128,
+            unclFeeInfo.feeGrowthInside1LastX128, , ) = INonfungiblePositionManager(params.nonFungiblePositionManger).positions(params.tokenId);
+        ( , int24 tickCurrent, , , , , ) = IPancakeV3Pool(params.poolAddress).slot0();
+        unclFeeInfo.feeGrowthGlobal0 = IPancakeV3Pool(params.poolAddress).feeGrowthGlobal0X128();
+	    unclFeeInfo.feeGrowthGlobal1 = IPancakeV3Pool(params.poolAddress).feeGrowthGlobal1X128();
+        ( , , unclFeeInfo.feeGrowthOutside0X128Lower, unclFeeInfo.feeGrowthOutside1X128Lower, , , , ) = IPancakeV3Pool(params.poolAddress).ticks(unclFeeInfo.tickLower);
+        ( , , unclFeeInfo.feeGrowthOutside0X128Upper, unclFeeInfo.feeGrowthOutside1X128Upper, , , , ) = IPancakeV3Pool(params.poolAddress).ticks(unclFeeInfo.tickUpper);
+
+        uint256 tickUpperFeeGrowthAbove_0; uint256 tickUpperFeeGrowthAbove_1;
+        if (tickCurrent >= unclFeeInfo.tickUpper){
+            tickUpperFeeGrowthAbove_0 = unclFeeInfo.feeGrowthGlobal0 - unclFeeInfo.feeGrowthOutside0X128Upper;
+            tickUpperFeeGrowthAbove_1 = unclFeeInfo.feeGrowthGlobal1 - unclFeeInfo.feeGrowthOutside1X128Upper;
+        } else{
+            tickUpperFeeGrowthAbove_0 = unclFeeInfo.feeGrowthOutside0X128Upper;
+            tickUpperFeeGrowthAbove_1 = unclFeeInfo.feeGrowthOutside1X128Upper;
+        }
+
+        uint256 tickLowerFeeGrowthBelow_0; uint256 tickLowerFeeGrowthBelow_1;
+        if (tickCurrent >= unclFeeInfo.tickLower){
+            tickLowerFeeGrowthBelow_0 = unclFeeInfo.feeGrowthOutside0X128Lower;
+            tickLowerFeeGrowthBelow_1 = unclFeeInfo.feeGrowthOutside1X128Lower;
+        } else{
+            tickLowerFeeGrowthBelow_0 = unclFeeInfo.feeGrowthGlobal0 - unclFeeInfo.feeGrowthOutside0X128Lower;
+            tickLowerFeeGrowthBelow_1 = unclFeeInfo.feeGrowthGlobal1 - unclFeeInfo.feeGrowthOutside1X128Lower;
+        }
+        
+        return (IFullMathLib(params.fullMathLib).mulDiv(unclFeeInfo.liquidity, (unclFeeInfo.feeGrowthGlobal0 - tickLowerFeeGrowthBelow_0 - tickUpperFeeGrowthAbove_0) - unclFeeInfo.feeGrowthInside0LastX128, FixedPoint128.Q128), 
+        IFullMathLib(params.fullMathLib).mulDiv(unclFeeInfo.liquidity, (unclFeeInfo.feeGrowthGlobal1 - tickLowerFeeGrowthBelow_1 - tickUpperFeeGrowthAbove_1) - unclFeeInfo.feeGrowthInside1LastX128, FixedPoint128.Q128));
+        
     }
 
 }
