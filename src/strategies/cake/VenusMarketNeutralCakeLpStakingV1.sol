@@ -94,8 +94,7 @@ contract VenusMarketNeutralCakeLpStakingV1 is CakeLpStakingV2 {
 
     function changeRange(int24 _tickLower, int24 _tickUpper) external override virtual {
         _checkOwner();
-        require(!(tickLower == _tickLower && tickUpper == _tickUpper), "SR");
-        DexV3Calculations.checkTicks(_tickLower, _tickUpper, tickMathLib, stake);
+        DexV3Calculations.checkTicks(tickLower, tickUpper, _tickLower, _tickUpper, tickMathLib, stake);
         _burnAndCollectV3();        //This will return token0 and token1 in a ratio that is corresponding to the current range not the one we're setting it to
         uint256 totalBorrows = IVToken(getNeutralToken()).borrowBalanceCurrent(address(this));
         uint256 totalSupplies = IVToken(getDepositToken()).balanceOfUnderlying(address(this));

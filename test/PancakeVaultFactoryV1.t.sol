@@ -4,7 +4,7 @@ import "forge-std/Test.sol";
 import "../src/strategies/cake/CakeLpStakingV1.sol";
 import "../src/strategies/common/interfaces/IStrategy.sol";
 import "../src/vaults/RiveraAutoCompoundingVaultV1.sol";
-import "../src/PancakeVaultFactoryV1.sol";
+import "@rivera/factories/cake/PancakeVaultFactoryV1.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
 import "@openzeppelin/utils/Address.sol";
 

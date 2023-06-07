@@ -2,10 +2,10 @@ pragma solidity ^0.8.4;
 
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
-import "@rivera/PancakePublicVaultFactoryV2.sol";
-import "@rivera/PancakeWhitelistedVaultFactoryV2.sol";
-import "@rivera/PancakePrivateVaultFactoryV2.sol";
-import "@rivera/PancakeStratFactoryV2.sol";
+import "@rivera/factories/cake/vault/PancakePublicVaultFactoryV2.sol";
+import "@rivera/factories/cake/vault/PancakeWhitelistedVaultFactoryV2.sol";
+import "@rivera/factories/cake/vault/PancakePrivateVaultFactoryV2.sol";
+import "@rivera/factories/cake/PancakeStratFactoryV2.sol";
 
 contract DeployRiveraFactoryV2 is Script {
   

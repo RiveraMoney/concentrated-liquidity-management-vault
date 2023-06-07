@@ -49,7 +49,8 @@ library DexV3Calculations {
     }
 
     /// @dev Common checks for valid tick inputs. From Uniswap V3 pool
-    function checkTicks(int24 tickLower_, int24 tickUpper_, address tickMathLib, address pool) public view {
+    function checkTicks(int24 tickLower, int24 tickUpper, int24 tickLower_, int24 tickUpper_, address tickMathLib, address pool) public view {
+        require(!(tickLower == tickLower_ && tickUpper == tickUpper_), "SR");
         require(tickLower_ < tickUpper_, "TOI");
         require(tickLower_ >= ITickMathLib(tickMathLib).MIN_TICK(), "LTTL");
         require(tickUpper_ <= ITickMathLib(tickMathLib).MAX_TICK(), "UTTH");

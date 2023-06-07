@@ -1,6 +1,6 @@
 pragma solidity >=0.5.0;
 
-struct CreateVaultParams {
+struct PancakeVaultParams {
     address asset;
     uint256 totalTvlCap;
     uint256 approvalDelay;
@@ -23,17 +23,9 @@ struct CreateVaultParams {
     address fullMathLib;
 }
 
-enum VaultType {
-        PRIVATE ,
-        PUBLIC,
-        WHITELISTED
-    }
-
-interface IRiveraAutoCompoundingVaultFactoryV2 {
-    event VaultCreated(address indexed user, address indexed stake, address vault);
-
-    function allVaults(uint) external view returns (address vault);
-    function createVault(CreateVaultParams memory createVaultParams) external returns (address vault);
-    function listAllVaults() external view returns (address[] memory);
-
+struct VenusMarketNeutralParams {
+    uint256 safetyFactor_; 
+    address vToken0_; 
+    address vToken1_; 
+    address distribution_;
 }

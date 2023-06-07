@@ -444,37 +444,37 @@ contract CakeLpStakingV2Test is Test {
     }
 
     function _convertRewardToToken0(uint256 reward) internal view returns (uint256 amount0) {
-        (address[] memory rewardToLp0AddressPath, uint24[] memory rewardToLp0FeePath) = strategy.getRewardToLp0Path();
+        // (address[] memory rewardToLp0AddressPath, uint24[] memory rewardToLp0FeePath) = strategy.getRewardToLp0Path();
         amount0 = reward;
-        for (uint256 i = 0; i < rewardToLp0FeePath.length; i++) {
-            uint24 fee = rewardToLp0FeePath[i];
-            address token0 = rewardToLp0AddressPath[i];
-            address token1 = rewardToLp0AddressPath[i+1];
-            address pool = IPancakeV3Factory(_factory).getPool(token0, token1, fee);
-            (uint160 sqrtPriceX96, , , , , , ) = IPancakeV3Pool(pool).slot0();
-            if (token0 != IPancakeV3Pool(pool).token0()) {
-                amount0 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount0, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
-            } else {
-                amount0 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount0, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
-            }
-        }
+        // for (uint256 i = 0; i < rewardToLp0FeePath.length; i++) {
+        //     uint24 fee = rewardToLp0FeePath[i];
+        //     address token0 = rewardToLp0AddressPath[i];
+        //     address token1 = rewardToLp0AddressPath[i+1];
+        //     address pool = IPancakeV3Factory(_factory).getPool(token0, token1, fee);
+        //     (uint160 sqrtPriceX96, , , , , , ) = IPancakeV3Pool(pool).slot0();
+        //     if (token0 != IPancakeV3Pool(pool).token0()) {
+        //         amount0 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount0, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
+        //     } else {
+        //         amount0 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount0, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
+        //     }
+        // }
     }
 
     function _convertRewardToToken1(uint256 reward) internal view returns (uint256 amount1) {
-        (address[] memory rewardToLp1AddressPath, uint24[] memory rewardToLp1FeePath) = strategy.getRewardToLp0Path();
+        // (address[] memory rewardToLp1AddressPath, uint24[] memory rewardToLp1FeePath) = strategy.getRewardToLp0Path();
         amount1 = reward;
-        for (uint256 i = 0; i < rewardToLp1FeePath.length; i++) {
-            uint24 fee = rewardToLp1FeePath[i];
-            address token0 = rewardToLp1AddressPath[i];
-            address token1 = rewardToLp1AddressPath[i+1];
-            address pool = IPancakeV3Factory(_factory).getPool(token0, token1, fee);
-            (uint160 sqrtPriceX96, , , , , , ) = IPancakeV3Pool(pool).slot0();
-            if (token0 != IPancakeV3Pool(pool).token0()) {
-                amount1 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount1, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
-            } else {
-                amount1 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount1, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
-            }
-        }
+        // for (uint256 i = 0; i < rewardToLp1FeePath.length; i++) {
+        //     uint24 fee = rewardToLp1FeePath[i];
+        //     address token0 = rewardToLp1AddressPath[i];
+        //     address token1 = rewardToLp1AddressPath[i+1];
+        //     address pool = IPancakeV3Factory(_factory).getPool(token0, token1, fee);
+        //     (uint160 sqrtPriceX96, , , , , , ) = IPancakeV3Pool(pool).slot0();
+        //     if (token0 != IPancakeV3Pool(pool).token0()) {
+        //         amount1 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount1, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
+        //     } else {
+        //         amount1 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount1, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
+        //     }
+        // }
     }
 
     ///@notice tests for harvest functions

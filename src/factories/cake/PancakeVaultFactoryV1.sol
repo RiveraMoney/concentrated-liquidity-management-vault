@@ -1,12 +1,12 @@
 pragma solidity ^0.8.0;
 
-import './interfaces/IRiveraAutoCompoundingVaultFactoryV1.sol';
-import './interfaces/IPancakeFactory.sol';
-import './strategies/cake/interfaces/IMasterChef.sol';
-import './strategies/common/interfaces/IStrategy.sol';
-import './vaults/RiveraAutoCompoundingVaultV1.sol';
-import './strategies/cake/CakeLpStakingV1.sol';
-import './strategies/common/AbstractStrategy.sol';
+import '../interfaces/IRiveraAutoCompoundingVaultFactoryV1.sol';
+import '@rivera/interfaces/IPancakeFactory.sol';
+import '@rivera/strategies/cake/interfaces/IMasterChef.sol';
+import '@rivera/strategies/common/interfaces/IStrategy.sol';
+import '@rivera/vaults/RiveraAutoCompoundingVaultV1.sol';
+import '@rivera/strategies/cake/CakeLpStakingV1.sol';
+import '@rivera/strategies/common/AbstractStrategy.sol';
 
 contract PancakeVaultFactoryV1 is IRiveraAutoCompoundingVaultFactoryV1 {
 

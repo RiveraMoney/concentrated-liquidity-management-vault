@@ -82,8 +82,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     event RangeChange(int24 tickLower, int24 tickUpper);
     event RewardToLp0PathChange(address[] newRewardToLp0AddressPath, uint24[] newRewardToLp0FeePath);
     event RewardToLp1PathChange(address[] newRewardToLp1AddressPath, uint24[] newRewardToLp1FeePath);
-    event RewardToNativeFeedChange(address oldFeed, address newFeed);
-    event AssetToNativeFeedChange(address oldFeed, address newFeed);
+    // event RewardToNativeFeedChange(address oldFeed, address newFeed);
+    // event AssetToNativeFeedChange(address oldFeed, address newFeed);
 
     ///@dev
     ///@param _cakePoolParams: Has the cake pool specific params
@@ -104,7 +104,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         rewardToLp0FeePath = _cakePoolParams.rewardToLp0FeePath;
         rewardToLp1AddressPath = _cakePoolParams.rewardToLp1AddressPath;
         rewardToLp1FeePath = _cakePoolParams.rewardToLp1FeePath;
-        DexV3Calculations.checkTicks(_cakePoolParams.tickLower, _cakePoolParams.tickUpper, tickMathLib, stake);
+        DexV3Calculations.checkTicks(0, 0, _cakePoolParams.tickLower, _cakePoolParams.tickUpper, tickMathLib, stake);
         tickLower = _cakePoolParams.tickLower;
         tickUpper = _cakePoolParams.tickUpper;
         poolFee = IPancakeV3Pool(stake).fee();
@@ -244,8 +244,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     //{-52050,-42800}
     function changeRange(int24 _tickLower, int24 _tickUpper) external virtual {
         _checkOwner();
-        require(!(tickLower == _tickLower && tickUpper == _tickUpper), "SR");
-        DexV3Calculations.checkTicks(_tickLower, _tickUpper, tickMathLib, stake);
+        DexV3Calculations.checkTicks(tickLower, tickUpper, _tickLower, _tickUpper, tickMathLib, stake);
         _burnAndCollectV3();        //This will return token0 and token1 in a ratio that is corresponding to the current range not the one we're setting it to
         tickLower = _tickLower;
         tickUpper = _tickUpper;
@@ -364,13 +363,13 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         }
     }
 
-    function getRewardToLp0Path() external view returns (address[] memory, uint24[] memory) {
-        return (rewardToLp0AddressPath, rewardToLp0FeePath);
-    }
+    // function getRewardToLp0Path() external view returns (address[] memory, uint24[] memory) {
+    //     return (rewardToLp0AddressPath, rewardToLp0FeePath);
+    // }
 
-    function getRewardToLp1Path() external view returns (address[] memory, uint24[] memory) {
-        return (rewardToLp1AddressPath, rewardToLp1FeePath);
-    }
+    // function getRewardToLp1Path() external view returns (address[] memory, uint24[] memory) {
+    //     return (rewardToLp1AddressPath, rewardToLp1FeePath);
+    // }
 
     function setRewardToLp0Path(address[] memory rewardToLp0AddressPath_, uint24[] memory rewardToLp0FeePath_) external {
         onlyManager();
@@ -388,19 +387,19 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         emit RewardToLp1PathChange(rewardToLp1AddressPath_, rewardToLp1FeePath_);
     }
 
-    function setRewardtoNativeFeed(address rewardToNativeFeed_) external {
-        onlyManager();
-        require(rewardToNativeFeed_!=address(0), "IA");
-        emit RewardToNativeFeedChange(rewardtoNativeFeed, rewardToNativeFeed_);
-        rewardtoNativeFeed = rewardToNativeFeed_;
-    }
+    // function setRewardtoNativeFeed(address rewardToNativeFeed_) external {
+    //     onlyManager();
+    //     require(rewardToNativeFeed_!=address(0), "IA");
+    //     emit RewardToNativeFeedChange(rewardtoNativeFeed, rewardToNativeFeed_);
+    //     rewardtoNativeFeed = rewardToNativeFeed_;
+    // }
 
-    function setAssettoNativeFeed(address assettoNativeFeed_) external {
-        onlyManager();
-        require(assettoNativeFeed_!=address(0), "IA");
-        emit AssetToNativeFeedChange(assettoNativeFeed, assettoNativeFeed_);
-        assettoNativeFeed = assettoNativeFeed_;
-    }
+    // function setAssettoNativeFeed(address assettoNativeFeed_) external {
+    //     onlyManager();
+    //     require(assettoNativeFeed_!=address(0), "IA");
+    //     emit AssetToNativeFeedChange(assettoNativeFeed, assettoNativeFeed_);
+    //     assettoNativeFeed = assettoNativeFeed_;
+    // }
 
     function _swapV3In(
         address tokenIn,
@@ -455,34 +454,23 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         }
     }
 
-    function liquidityBalance() public view returns (uint128) {
-        (uint128 liquidity, , , , , , , , ) = IMasterChefV3(chef).userPositionInfos(tokenID);
-        return liquidity;
+    function liquidityBalance() public view returns (uint128 liquidity) {
+        (liquidity, , , , , , , , ) = IMasterChefV3(chef).userPositionInfos(tokenID);
     }
 
-    function rewardsAvailable() public view returns (uint256) {
-        uint256 rewardsAvbl = IMasterChefV3(chef).pendingCake(tokenID);
-        return rewardsAvbl;
+    function rewardsAvailable() public view returns (uint256 rewardsAvbl) {
+        rewardsAvbl = IMasterChefV3(chef).pendingCake(tokenID);
     }
 
-    function lpRewardsAvailable() public view returns (uint256) {
-        (uint256 lpFees0, uint256 lpFees1) = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(tokenID, stake, NonfungiblePositionManager, fullMathLib));
-        if (isTokenZeroDeposit) {
-            return lpFees0 + DexV3Calculations.convertAmount1ToAmount0(lpFees1, stake, fullMathLib);
-        } else {
-            return lpFees1 + DexV3Calculations.convertAmount0ToAmount1(lpFees0, stake, fullMathLib);
-        }
+    function lpRewardsAvailable() public view returns (uint256 lpFees0, uint256 lpFees1) {
+        (lpFees0, lpFees1) = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(tokenID, stake, NonfungiblePositionManager, fullMathLib));
     }
 
     // called as part of strat migration. Sends all the available funds back to the vault.
     function retireStrat() external {
         onlyVault();
         (uint256 amount0, uint256 amount1) = _burnAndCollectV3();
-        _lptoDepositTokenSwap(amount0, amount1);
-        uint256 depositTokenBal = IERC20(getDepositToken()).balanceOf(
-            address(this)
-        );
-        IERC20(getDepositToken()).safeTransfer(vault, depositTokenBal);
+        IERC20(getDepositToken()).safeTransfer(vault, _lptoDepositTokenSwap(amount0, amount1));
     }
 
     // pauses deposits and withdraws all funds from third party systems.
@@ -490,11 +478,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         onlyManager();
         pause();
         (uint256 amount0, uint256 amount1) = _burnAndCollectV3();
-        _lptoDepositTokenSwap(amount0, amount1);
-        uint256 depositTokenBal = IERC20(getDepositToken()).balanceOf(
-            address(this)
-        );
-        IERC20(getDepositToken()).safeTransfer(vault, depositTokenBal);
+        IERC20(getDepositToken()).safeTransfer(vault, _lptoDepositTokenSwap(amount0, amount1));
     }
 
     function pause() public {

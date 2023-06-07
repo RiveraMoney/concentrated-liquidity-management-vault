@@ -1,11 +1,12 @@
 pragma solidity ^0.8.0;
 
-import './interfaces/IRiveraAutoCompoundingVaultFactoryV2.sol';
-import './strategies/common/interfaces/IStrategy.sol';
-import './vaults/RiveraAutoCompoundingVaultV2Private.sol';
-import './PancakeStratFactoryV2.sol';
+import '@rivera/factories/interfaces/IRiveraVaultFactory.sol';
+import '@rivera/strategies/common/interfaces/IStrategy.sol';
+import '@rivera/vaults/RiveraAutoCompoundingVaultV2Private.sol';
+import '../PancakeStratFactoryV2.sol';
+import '../PancakeVaultCreationStruct.sol';
 
-contract PancakePrivateVaultFactoryV2 is IRiveraAutoCompoundingVaultFactoryV2 {
+contract PancakePrivateVaultFactoryV2 is IRiveraVaultFactory {
 
     address[] public allVaults;
 
@@ -25,7 +26,7 @@ contract PancakePrivateVaultFactoryV2 is IRiveraAutoCompoundingVaultFactoryV2 {
         manager = msg.sender;
     }
 
-    function createVault(CreateVaultParams memory createVaultParams) external returns (address vaultAddress) {
+    function createVault(PancakeVaultParams memory createVaultParams) external returns (address vaultAddress) {
         RiveraAutoCompoundingVaultV2Private vault = new RiveraAutoCompoundingVaultV2Private(createVaultParams.asset, createVaultParams.tokenName, createVaultParams.tokenSymbol, 
         createVaultParams.approvalDelay, createVaultParams.totalTvlCap);
         vaultAddress = address(vault);
