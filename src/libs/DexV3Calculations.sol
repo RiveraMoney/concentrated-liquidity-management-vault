@@ -143,7 +143,7 @@ library DexV3Calculations {
         uint256 feeGrowthOutside1X128Upper;
     }
 
-    function unclaimedFeesOfLpPosition(UnclaimedLpFeesParams calldata params) public view returns (uint256, uint256) {
+    function unclaimedFeesOfLpPosition(UnclaimedLpFeesParams calldata params) public view returns (uint256) {
         UnclaimedFeeCalcInfo memory unclFeeInfo;
         ( , , , , , unclFeeInfo.tickLower, unclFeeInfo.tickUpper, unclFeeInfo.liquidity, unclFeeInfo.feeGrowthInside0LastX128,
             unclFeeInfo.feeGrowthInside1LastX128, , ) = INonfungiblePositionManager(params.nonFungiblePositionManger).positions(params.tokenId);
@@ -171,7 +171,9 @@ library DexV3Calculations {
             tickLowerFeeGrowthBelow_1 = unclFeeInfo.feeGrowthGlobal1 - unclFeeInfo.feeGrowthOutside1X128Lower;
         }
         
-        return (IFullMathLib(params.fullMathLib).mulDiv(unclFeeInfo.liquidity, (unclFeeInfo.feeGrowthGlobal0 - tickLowerFeeGrowthBelow_0 - tickUpperFeeGrowthAbove_0) - unclFeeInfo.feeGrowthInside0LastX128, FixedPoint128.Q128), 
+        return params.isToken0Deposit? (IFullMathLib(params.fullMathLib).mulDiv(unclFeeInfo.liquidity, (unclFeeInfo.feeGrowthGlobal0 - tickLowerFeeGrowthBelow_0 - tickUpperFeeGrowthAbove_0) - unclFeeInfo.feeGrowthInside0LastX128, FixedPoint128.Q128) +
+        convertAmount1ToAmount0(IFullMathLib(params.fullMathLib).mulDiv(unclFeeInfo.liquidity, (unclFeeInfo.feeGrowthGlobal1 - tickLowerFeeGrowthBelow_1 - tickUpperFeeGrowthAbove_1) - unclFeeInfo.feeGrowthInside1LastX128, FixedPoint128.Q128), params.poolAddress, params.fullMathLib)):
+        (convertAmount0ToAmount1(IFullMathLib(params.fullMathLib).mulDiv(unclFeeInfo.liquidity, (unclFeeInfo.feeGrowthGlobal0 - tickLowerFeeGrowthBelow_0 - tickUpperFeeGrowthAbove_0) - unclFeeInfo.feeGrowthInside0LastX128, FixedPoint128.Q128), params.poolAddress, params.fullMathLib) +
         IFullMathLib(params.fullMathLib).mulDiv(unclFeeInfo.liquidity, (unclFeeInfo.feeGrowthGlobal1 - tickLowerFeeGrowthBelow_1 - tickUpperFeeGrowthAbove_1) - unclFeeInfo.feeGrowthInside1LastX128, FixedPoint128.Q128));
         
     }

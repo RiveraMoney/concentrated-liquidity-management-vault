@@ -462,8 +462,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         rewardsAvbl = IMasterChefV3(chef).pendingCake(tokenID);
     }
 
-    function lpRewardsAvailable() public view returns (uint256 lpFees0, uint256 lpFees1) {
-        (lpFees0, lpFees1) = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(tokenID, stake, NonfungiblePositionManager, fullMathLib));
+    function lpRewardsAvailable() public view returns (uint256 lpFeesDepositToken) {
+        lpFeesDepositToken = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(isTokenZeroDeposit, tokenID, stake, NonfungiblePositionManager, fullMathLib));
     }
 
     // called as part of strat migration. Sends all the available funds back to the vault.

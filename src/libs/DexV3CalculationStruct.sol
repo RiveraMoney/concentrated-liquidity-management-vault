@@ -25,7 +25,8 @@ struct ChangeInAmountsForNewRatioParams {
     address fullMathLib;
 }
 
-struct UnclaimedLpFeesParams { 
+struct UnclaimedLpFeesParams {
+    bool isToken0Deposit;
     uint256 tokenId; 
     address poolAddress; 
     address nonFungiblePositionManger; 
