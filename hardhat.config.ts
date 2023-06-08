@@ -19,6 +19,7 @@ if (!ADMIN_ACCOUNT || !TEST_ACCOUNT1 || !TEST_ACCOUNT2 || !BSC_SCAN_API_KEY || !
 
 import example from "./tasks/example";
 import transferMeTokens from "./tasks/TransferMeTokens";
+import transferTokens from "./tasks/TransferTokens";
 
 function getRemappings() {
   return fs
@@ -34,6 +35,9 @@ task("TransferMeTokens", "Task to transfer tokens from a whale to you").addParam
   .addParam("account1", "Your account address").setAction(transferMeTokens)
   .addParam("account2", "Your account address").setAction(transferMeTokens)
   .setAction(transferMeTokens);
+task("TransferTokens", "Task to transfer tokens from a whale to accounts").addParam("tokenwhale", "Whale who has the token")
+  .addParam("token", "Address of the tokens you want").addParam("amount", "Amount of tokens you want (In full 18 decimals format)")
+  .setAction(transferTokens);
 
 const config: HardhatUserConfig = {
   solidity: {

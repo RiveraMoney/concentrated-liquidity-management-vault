@@ -3,15 +3,55 @@ pragma solidity ^0.8.4;
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2Whitelisted.sol";
-import "@rivera/PancakeWhitelistedVaultFactoryV2.sol";
+// import "@rivera/factories/cake/vault/PancakeWhitelistedVaultFactoryV2.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
-import '@rivera/interfaces/IRiveraAutoCompoundingVaultFactoryV2.sol';
+// import '@rivera/factories/cake/PancakeVaultCreationStruct.sol';
+
+struct PancakeVaultParams {
+    address asset;
+    uint256 totalTvlCap;
+    uint256 approvalDelay;
+    string tokenName;
+    string tokenSymbol;
+    int24 tickLower;
+    int24 tickUpper;
+    address stake;
+    address[] rewardToLp0AddressPath;
+    uint24[] rewardToLp0FeePath;
+    address[] rewardToLp1AddressPath;
+    uint24[] rewardToLp1FeePath;
+    address  rewardtoNativeFeed;
+    address  assettoNativeFeed;
+    address tickMathLib;
+    address sqrtPriceMathLib;
+    address liquidityMathLib;
+    address safeCastLib;
+    address liquidityAmountsLib;
+    address fullMathLib;
+}
+enum VaultType {
+        PRIVATE ,
+        PUBLIC,
+        WHITELISTED
+    }
+
+interface IRiveraVaultFactoryV2
+ {
+    event VaultCreated(address indexed user, address indexed stake, address vault);
+
+    function allVaults(uint) external view returns (address vault);
+    function listAllVaults() external view returns (address[] memory);
+    function createVault(PancakeVaultParams memory createVaultParams) external returns (address vault);
+
+}
+
+
 
 
 contract DeployWhitelistedVaultV2 is Script {
 
     //factoru
-    IRiveraAutoCompoundingVaultFactoryV2 _factory=IRiveraAutoCompoundingVaultFactoryV2(0x6AB8c9590bD89cBF9DCC90d5efEC4F45D5d219be);
+    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0x6AB8c9590bD89cBF9DCC90d5efEC4F45D5d219be);
 
 
     address _cake = 0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82; //Adress of the CAKE ERC20 token on mainnet
@@ -28,6 +68,10 @@ contract DeployWhitelistedVaultV2 is Script {
     address _user2;
     address _user3;  
     address _user4;
+    address _user5;
+    address _user6;
+    address _user7;
+    address _user8;
     uint256 _privateKey1;
     uint256 _privateKey2;
     uint256 _privateKey3;
@@ -62,23 +106,23 @@ contract DeployWhitelistedVaultV2 is Script {
     
 
     //BNBx / WBNB pool params
-    address[] _rewardToLp0AddressPathBnbPool = [_cake, _bnbx];
-    uint24[] _rewardToLp0FeePathBnbPool = [2500];
+    address[] _rewardToLp0AddressPathBnbPool = [_cake,_wbnb, _bnbx];
+    uint24[] _rewardToLp0FeePathBnbPool = [2500,500];
     address[] _rewardToLp1AddressPathBnbPool = [_cake, _wbnb];
     uint24[] _rewardToLp1FeePathBnbPool = [2500];
     address _stakeBnbPool=0x77B27c351B13Dc6a8A16Cc1d2E9D5e7F9873702E;//BNBx / WBNB
     address  _assettoNativeFeedBnbPool=address(0);
-    uint256 depositAmount1=100e18;///vault 1 deposit amount
+    uint256 depositAmount1=1e18;///vault 1 deposit amount
 
 
     //ETH / ankrETH pool params
-    address[] _rewardToLp0AddressPathEthPool = [_cake, _eth];
-    uint24[] _rewardToLp0FeePathEthPool = [2500];
-    address[] _rewardToLp1AddressPathEthPool = [_cake, _ankrEth];
-    uint24[] _rewardToLp1FeePathEthPool = [2500];
+    address[] _rewardToLp0AddressPathEthPool = [_cake,_wbnb, _eth];
+    uint24[] _rewardToLp0FeePathEthPool = [2500,2500];
+    address[] _rewardToLp1AddressPathEthPool = [_cake,_wbnb,_eth, _ankrEth];
+    uint24[] _rewardToLp1FeePathEthPool = [2500,2500,500];
     address _stakeEthPool=0x61837a8a78F42dC6cfEd457c4eC1114F5e2d90f4;//BNBx / WBNB
     address  _assettoNativeFeedEthPool=0x63D407F32Aa72E63C7209ce1c2F5dA40b3AaE726;
-    uint256 depositAmount2=100e18;  ////vault 2 deposit amount
+    uint256 depositAmount2=1e18;  ////vault 2 deposit amount
 
 
     //common address
@@ -110,6 +154,18 @@ contract DeployWhitelistedVaultV2 is Script {
         uint256 privateKey4 = vm.deriveKey(seedPhrase,3);
         _privateKey4=privateKey4;
         _user4 =vm.addr(privateKey4);
+
+        uint256 privateKey5 = vm.deriveKey(seedPhrase,4);
+        _user5 =vm.addr(privateKey5);
+
+        uint256 privateKey6 = vm.deriveKey(seedPhrase,5);
+        _user6 =vm.addr(privateKey6);
+
+        uint256 privateKey7 = vm.deriveKey(seedPhrase,6);
+        _user7 =vm.addr(privateKey7);
+
+        uint256 privateKey8 = vm.deriveKey(seedPhrase,7);
+        _user8 =vm.addr(privateKey8);
 
         console.log("user1",_user1);
         console.log("user2",_user2);
@@ -143,7 +199,7 @@ contract DeployWhitelistedVaultV2 is Script {
 
         console.log("======================Deploy Vaults====================");
         console.log("create vault of BNBx / WBNB pool");
-        CreateVaultParams memory createVaultParamsBnbPool= CreateVaultParams(
+        PancakeVaultParams memory createVaultParamsBnbPool= PancakeVaultParams(
             _wbnb,
             vaultTvlCap,
             stratUpdateDelay,
@@ -173,7 +229,7 @@ contract DeployWhitelistedVaultV2 is Script {
         
         console.log("create vault of ETH / ankrETH  pool");
 
-        CreateVaultParams memory createVaultParamsEthPool= CreateVaultParams(
+        PancakeVaultParams memory createVaultParamsEthPool= PancakeVaultParams(
             _eth,
             vaultTvlCap,
             stratUpdateDelay,
@@ -205,6 +261,16 @@ contract DeployWhitelistedVaultV2 is Script {
         RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user4);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user3);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user4);
+        //whitelist the users from 5 to 8
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user5);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user6);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user7);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user8);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user5);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user6);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user7);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user8);
+        
         vm.stopBroadcast();
         
         //get list of vaults
@@ -240,7 +306,7 @@ contract DeployWhitelistedVaultV2 is Script {
 
     }
 
-    function _createVault(IRiveraAutoCompoundingVaultFactoryV2 factory,CreateVaultParams memory createVaultParams) internal returns (address vaultAddress){
+    function _createVault(IRiveraVaultFactoryV2 factory,PancakeVaultParams memory createVaultParams) internal returns (address vaultAddress){
         
         vaultAddress =factory.createVault(createVaultParams); 
     }
