@@ -72,6 +72,8 @@ contract DeployWhitelistedVaultV2 is Script {
     address _user6;
     address _user7;
     address _user8;
+    address _user9;
+    address _user10;
     uint256 _privateKey1;
     uint256 _privateKey2;
     uint256 _privateKey3;
@@ -166,6 +168,12 @@ contract DeployWhitelistedVaultV2 is Script {
 
         uint256 privateKey8 = vm.deriveKey(seedPhrase,7);
         _user8 =vm.addr(privateKey8);
+
+        uint256 privateKey9 = vm.deriveKey(seedPhrase,8);
+        _user9 =vm.addr(privateKey9);
+
+        uint256 privateKey10 = vm.deriveKey(seedPhrase,9);
+        _user10 =vm.addr(privateKey10);
 
         console.log("user1",_user1);
         console.log("user2",_user2);
@@ -266,10 +274,14 @@ contract DeployWhitelistedVaultV2 is Script {
         RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user6);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user7);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user8);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user9);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultBnbPool).newWhitelist(_user10);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user5);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user6);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user7);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user8);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user9);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user10);
         
         vm.stopBroadcast();
         

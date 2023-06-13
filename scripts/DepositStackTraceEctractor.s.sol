@@ -14,7 +14,7 @@ contract DepositStackTraceExtractor is Script {
     uint256 depositAmount = 1e15;
 
     function setUp() public {
-        string memory seedPhrase = vm.readFile(".secret");
+        string memory seedPhrase = "plastic butter arena used bar slight lock before clock wheat hen axis";
 
         uint256 privateKey3 = vm.deriveKey(seedPhrase, 2);
         _privateKey3=privateKey3;
