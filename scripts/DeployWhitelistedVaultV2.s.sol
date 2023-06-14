@@ -114,7 +114,6 @@ contract DeployWhitelistedVaultV2 is Script {
     uint24[] _rewardToLp1FeePathBnbPool = [2500];
     address _stakeBnbPool=0x77B27c351B13Dc6a8A16Cc1d2E9D5e7F9873702E;//BNBx / WBNB
     address  _assettoNativeFeedBnbPool=address(0);
-    uint256 depositAmount1=1e18;///vault 1 deposit amount
 
 
     //ETH / ankrETH pool params
@@ -124,7 +123,6 @@ contract DeployWhitelistedVaultV2 is Script {
     uint24[] _rewardToLp1FeePathEthPool = [2500,2500,500];
     address _stakeEthPool=0x61837a8a78F42dC6cfEd457c4eC1114F5e2d90f4;//BNBx / WBNB
     address  _assettoNativeFeedEthPool=0x63D407F32Aa72E63C7209ce1c2F5dA40b3AaE726;
-    uint256 depositAmount2=1e18;  ////vault 2 deposit amount
 
 
     //common address
@@ -282,6 +280,9 @@ contract DeployWhitelistedVaultV2 is Script {
         RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user8);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user9);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultEthPool).newWhitelist(_user10);
+
+        uint256 depositAmount1=IERC20(_wbnb).balanceOf(_user3)/10;///vault 1 deposit amount
+        uint256 depositAmount2=IERC20(_eth).balanceOf(_user3)/10;  ////vault 2 deposit amount
         
         vm.stopBroadcast();
         
