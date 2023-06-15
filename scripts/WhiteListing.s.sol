@@ -8,31 +8,25 @@ import "@rivera/libs/WhitelistFilter.sol";
 import "@rivera/factories/cake/PancakeStratFactoryV2.sol";
 
 contract WhiteListing is Script {
-    address _vaultBnb=0x10DAF097374e6C4F6f2fcBD2586519E9cBb803D3;
-    address _vaultEth=0x8Ff3b85b341fAd37417f77567624b08B5142fD5c;
-    address [] users=[0xcf288Dc70983D17C83EA1b80579b211c51043801,0xe620Ddc3b46FC30D7Ba98C6B315aA17f69302B0c,0xE1427B8A742f489c866C42874F83aFc0c5D003e8];
+    address[] _vaults = [0x4C4A11B5FbAe47a6303F9aC8585584a40ba476c4, 0x1b88557d928f27ea912DA095D5991A253293b1a7];
+    address[] _users = [0xA7376C779f30B0989C739ed79733Ad220C83b223];
 
     function run() public {
+        uint256 ownerPrivateKey = 0x216653d326fc394b6c8c608750f4379a84eb7f9d97c0e6cd0f7e7c0c2c6a7f5e;
 
-        string memory seedPhrase = vm.readFile(".secret");
-        uint256 privateKey = vm.deriveKey(seedPhrase, 1);
-
-        vm.startBroadcast(privateKey);
-        RiveraAutoCompoundingVaultV2Whitelisted vaultBnb = RiveraAutoCompoundingVaultV2Whitelisted(_vaultBnb);
-        RiveraAutoCompoundingVaultV2Whitelisted vaultEth = RiveraAutoCompoundingVaultV2Whitelisted(_vaultEth);
-        for(uint i=0;i<users.length;i++){
-            bool isWhitelisted = vaultBnb.whitelist(users[i]);
-            console.log("User",users[i],"isWhitelisted",isWhitelisted);
-            if(!isWhitelisted){
-                vaultBnb.newWhitelist(users[i]);
-                vaultEth.newWhitelist(users[i]);
-            }else
-            {
-                vaultBnb.removeWhitelist(users[i]);
-                vaultEth.removeWhitelist(users[i]);
+        vm.startBroadcast(ownerPrivateKey);
+        for (uint256 i=0; i<_vaults.length; i++) {
+            RiveraAutoCompoundingVaultV2Whitelisted vault = RiveraAutoCompoundingVaultV2Whitelisted(_vaults[i]);
+            for(uint256 j=0; j<_users.length; j++){
+                bool isWhitelisted = vault.whitelist(_users[j]);
+                console.log("User", _users[j], "isWhitelisted", isWhitelisted);
+                if(!isWhitelisted){
+                    vault.newWhitelist(_users[j]);
+                } else {
+                    vault.removeWhitelist(_users[j]);
+                }
             }
         }
-
         vm.stopBroadcast();
     }
 
