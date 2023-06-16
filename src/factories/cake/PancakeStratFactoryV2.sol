@@ -10,7 +10,7 @@ contract PancakeStratFactoryV2 {
         strategy.init(CakePoolParams(createVaultParams.tickLower, createVaultParams.tickUpper, createVaultParams.stake, chef, createVaultParams.rewardToLp0AddressPath[0], createVaultParams.tickMathLib, 
         createVaultParams.sqrtPriceMathLib, createVaultParams.liquidityMathLib, createVaultParams.safeCastLib, createVaultParams.liquidityAmountsLib, createVaultParams.fullMathLib, 
         createVaultParams.rewardToLp0AddressPath, createVaultParams.rewardToLp0FeePath, createVaultParams.rewardToLp1AddressPath, createVaultParams.rewardToLp1FeePath, 
-        createVaultParams.rewardtoNativeFeed, createVaultParams.assettoNativeFeed), CommonAddresses(vaultAddress, router, nonfungiblePositionManager));
+        createVaultParams.rewardtoNativeFeed, createVaultParams.assettoNativeFeed,"pendingCake"), CommonAddresses(vaultAddress, router, nonfungiblePositionManager));
         strategy.transferOwnership(user);
         strategy.setManager(manager);
         return address(strategy);

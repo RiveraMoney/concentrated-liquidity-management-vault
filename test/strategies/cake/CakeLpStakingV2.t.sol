@@ -108,7 +108,8 @@ contract CakeLpStakingV2Test is Test {
             _rewardToLp1AddressPath,
             _rewardToLp1FeePath,
             _rewardtoNativeFeed,
-            _assettoNativeFeed
+            _assettoNativeFeed,
+            "pendingCake"
             );
         strategy = new CakeLpStakingV2();
         strategy.init(cakePoolParams, _commonAddresses);

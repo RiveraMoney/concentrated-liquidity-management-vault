@@ -11,6 +11,7 @@ import "@pancakeswap-v3-core/interfaces/IPancakeV3Pool.sol";
 import "./interfaces/IMasterChefV3.sol";
 import "./interfaces/INonfungiblePositionManager.sol";
 import "../common/AbstractStrategyV2.sol";
+import "../utils/StringUtils.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/proxy/utils/Initializable.sol";
 import "./interfaces/IV3SwapRouter.sol";
@@ -36,6 +37,7 @@ struct CakePoolParams {
     uint24[] rewardToLp1FeePath;
     address  rewardtoNativeFeed;
     address  assettoNativeFeed;
+    string pendingRewardsFunctionName;
 }
 
 contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, Initializable {
@@ -69,6 +71,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     address[] public rewardToLp1AddressPath;
     uint24[] public rewardToLp1FeePath;
     address public rewardtoNativeFeed;
+    string public pendingRewardsFunctionName;
     address public assettoNativeFeed;
 
     //Events
@@ -119,6 +122,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         router = _commonAddresses.router;
         manager = msg.sender;
         NonfungiblePositionManager = _commonAddresses.NonfungiblePositionManager;
+        pendingRewardsFunctionName=_cakePoolParams.pendingRewardsFunctionName;
         _giveAllowances();
     }
 
@@ -459,7 +463,16 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     }
 
     function rewardsAvailable() public view returns (uint256 rewardsAvbl) {
-        rewardsAvbl = IMasterChefV3(chef).pendingCake(tokenID);
+        // rewardsAvbl = IMasterChefV3(chef).pendingCake(tokenID);
+        string memory signature = StringUtils.concat(
+            pendingRewardsFunctionName,
+            "(uint256)"
+        );
+        bytes memory result = Address.functionStaticCall(
+            chef,
+            abi.encodeWithSignature(signature, tokenID )
+        );
+        rewardsAvbl= abi.decode(result, (uint256));
     }
 
     function lpRewardsAvailable() public view returns (uint256 lpFeesDepositToken) {

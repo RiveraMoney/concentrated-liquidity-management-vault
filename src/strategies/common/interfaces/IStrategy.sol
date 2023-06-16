@@ -40,4 +40,9 @@ interface IStrategy {
     function manager() external view returns (address);
     function rewardtoNativeFeed() external view returns (address);
     function assettoNativeFeed() external view returns (address);
+    function changeRange(int24 _tickLower, int24 _tickUpper) external;
+    function tickLower() external view returns (int24);
+    function tickUpper() external view returns (int24);
+    function tokenID() external view returns (uint256);
+
 }
