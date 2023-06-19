@@ -28,6 +28,7 @@ struct PancakeVaultParams {
     address safeCastLib;
     address liquidityAmountsLib;
     address fullMathLib;
+    string pendingReward;
 }
 enum VaultType {
         PRIVATE ,
@@ -81,10 +82,7 @@ contract DeployWhitelistedVaultV2 is Script {
 
 
 
-    //cakepool params
-    // bool _isTokenZeroDeposit = true;
-    int24 _tickLower = -59310;
-    int24 _tickUpper = -57100;
+    string pendingReward="pendingCake";
     address _chef = 0x556B9306565093C855AEA9AE92A594704c2Cd59e;
     // address _reward = 0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82;
     // //libraries
@@ -225,8 +223,8 @@ contract DeployWhitelistedVaultV2 is Script {
             _liquidityMathLib,
             _safeCastLib,
             _liquidityAmountsLib,
-            _fullMathLib
-
+            _fullMathLib,
+            pendingReward
         );
         address vaultBnbPool = _createVault(_factory,createVaultParamsBnbPool);
         console.log("Vault BNBx / WBNB ",vaultBnbPool);
@@ -255,8 +253,8 @@ contract DeployWhitelistedVaultV2 is Script {
             _liquidityMathLib,
             _safeCastLib,
             _liquidityAmountsLib,
-            _fullMathLib
-
+            _fullMathLib,
+            pendingReward
         );
 
         address vaultEthPool = _createVault(_factory,createVaultParamsEthPool);

@@ -21,6 +21,7 @@ struct PancakeVaultParams {
     address safeCastLib;
     address liquidityAmountsLib;
     address fullMathLib;
+    string pendingReward;
 }
 
 struct VenusMarketNeutralParams {

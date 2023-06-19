@@ -11,7 +11,7 @@ contract PancakeVenusMarketNeutralCakeLpStakingFactory {
         strategy.init(CakePoolParams(createVaultParams.tickLower, createVaultParams.tickUpper, createVaultParams.stake, chef, createVaultParams.rewardToLp0AddressPath[0], createVaultParams.tickMathLib, 
         createVaultParams.sqrtPriceMathLib, createVaultParams.liquidityMathLib, createVaultParams.safeCastLib, createVaultParams.liquidityAmountsLib, createVaultParams.fullMathLib, 
         createVaultParams.rewardToLp0AddressPath, createVaultParams.rewardToLp0FeePath, createVaultParams.rewardToLp1AddressPath, createVaultParams.rewardToLp1FeePath, 
-        createVaultParams.rewardtoNativeFeed, createVaultParams.assettoNativeFeed,"pendingCake"), CommonAddresses(vaultAddress, router, NonfungiblePositionManager), 
+        createVaultParams.rewardtoNativeFeed, createVaultParams.assettoNativeFeed,createVaultParams.pendingReward), CommonAddresses(vaultAddress, router, NonfungiblePositionManager), 
         venusMarketNeutralParams.safetyFactor_, venusMarketNeutralParams.vToken0_, venusMarketNeutralParams.vToken1_, venusMarketNeutralParams.distribution_);
         strategy.transferOwnership(user);
         strategy.setManager(manager);
