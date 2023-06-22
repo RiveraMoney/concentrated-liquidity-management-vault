@@ -344,13 +344,13 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     function _lptoDepositTokenSwap(uint256 amount0, uint256 amount1) internal returns (uint256 totalDepositAsset) {
         address depositToken = getDepositToken();
         uint256 amountOut;
-        if (depositToken != lpToken0 && amount0 != 0) {
-            amountOut = _swapV3In(lpToken0, depositToken, amount0, poolFee);
+        if (depositToken != lpToken0) {
+            if (amount0 != 0) {amountOut = _swapV3In(lpToken0, depositToken, amount0, poolFee);}
             totalDepositAsset = amount1 + amountOut;
         }
 
-        if (depositToken != lpToken1 && amount1 != 0) {
-            amountOut = _swapV3In(lpToken1, depositToken, amount1, poolFee);
+        if (depositToken != lpToken1) {
+            if (amount1 != 0) {amountOut = _swapV3In(lpToken1, depositToken, amount1, poolFee);}
             totalDepositAsset = amount0 + amountOut;
         }
     }
