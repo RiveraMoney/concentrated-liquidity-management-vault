@@ -142,6 +142,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     function _deposit() internal virtual {
         _swapAssetsToNewRangeRatio();
         depositV3();
+        IERC20(getDepositToken()).safeTransfer(vault, _lptoDepositTokenSwap(IERC20(lpToken0).balanceOf(address(this)), IERC20(lpToken1).balanceOf(address(this))));
     }
 
     // puts the funds to work
@@ -285,8 +286,7 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     function withdraw(uint256 _amount) external virtual nonReentrant {
         onlyVault();
         (uint256 userAmount0, uint256 userAmount1) = _withdrawV3(_amount);
-        uint256 totalAmount = _lptoDepositTokenSwap(userAmount0, userAmount1);
-        IERC20(getDepositToken()).safeTransfer(vault, totalAmount);
+        IERC20(getDepositToken()).safeTransfer(vault, _lptoDepositTokenSwap(userAmount0, userAmount1));
         emit Withdraw(balanceOf(), _amount);
     }
 
@@ -449,12 +449,11 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     function balanceOf() public view returns (uint256) {
         uint128 totalLiquidityDelta = liquidityBalance();
         (uint256 amount0, uint256 amount1) = DexV3Calculations.liquidityToAmounts(LiquidityToAmountCalcParams(tickLower, tickUpper, totalLiquidityDelta, safeCastLib, sqrtPriceMathLib, tickMathLib, stake));
-        uint256 token0Bal = IERC20(lpToken0).balanceOf(address(this));
-        uint256 token1Bal = IERC20(lpToken1).balanceOf(address(this));
+        uint256 vaultReserve = IERC20(getDepositToken()).balanceOf(vault);
         if (isTokenZeroDeposit) {
-            return amount0 + token0Bal + DexV3Calculations.convertAmount1ToAmount0(amount1 + token1Bal, stake, fullMathLib);
+            return amount0 + DexV3Calculations.convertAmount1ToAmount0(amount1, stake, fullMathLib) + vaultReserve;
         } else {
-            return DexV3Calculations.convertAmount0ToAmount1(amount0 + token0Bal, stake, fullMathLib) + amount1 + token1Bal;
+            return DexV3Calculations.convertAmount0ToAmount1(amount0, stake, fullMathLib) + amount1 + vaultReserve;
         }
     }
 

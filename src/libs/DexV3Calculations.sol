@@ -88,7 +88,7 @@ library DexV3Calculations {
                 ITickMathLib(liquidityToAmountCalcParams.tickMathLib).getSqrtRatioAtTick(liquidityToAmountCalcParams.tickUpper), amount0);
         } else {
             liquidityDelta = ILiquidityAmountsLib(liquidityDeltaForAssetAmountParams.liquidityAmountsLib).getLiquidityForAmount1(ITickMathLib(liquidityToAmountCalcParams.tickMathLib).getSqrtRatioAtTick(liquidityToAmountCalcParams.tickLower),
-                ITickMathLib(liquidityToAmountCalcParams.tickMathLib).getSqrtRatioAtTick(liquidityToAmountCalcParams.tickUpper), convertAmount0ToAmount1(amount1, liquidityToAmountCalcParams.poolAddress, liquidityDeltaForAssetAmountParams.fullMathLib));
+                ITickMathLib(liquidityToAmountCalcParams.tickMathLib).getSqrtRatioAtTick(liquidityToAmountCalcParams.tickUpper), amount1);
         }
     }
 
