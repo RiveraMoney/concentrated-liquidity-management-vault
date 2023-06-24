@@ -9,7 +9,7 @@ import "@rivera/factories/cake/PancakeStratFactoryV2.sol";
 
 contract DeployRiveraFactoryV2Mantle is Script {
   
-    address _chef = 0x200f1f16bcc98687cEEBfEF03b7722547963fedb;
+    address _chef = 0x9316938Eaa09E71CBB1Bf713212A42beCBa2998F;
     address _router = 0xE3a68317a2F1c41E5B2efBCe2951088efB0Cf524;
     address _NonfungiblePositionManager = 0x94705da51466F3Bb1E8c1591D71C09c9760f5F59;
     VaultType _vaultType = VaultType.WHITELISTED;

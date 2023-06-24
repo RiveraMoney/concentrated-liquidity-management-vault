@@ -28,6 +28,7 @@ struct PancakeVaultParams {
     address safeCastLib;
     address liquidityAmountsLib;
     address fullMathLib;
+    string pendingReward;
 }
 enum VaultType {
         PRIVATE ,
@@ -51,7 +52,7 @@ interface IRiveraVaultFactoryV2
 contract DeployWhitelistedVaultV2Mantle is Script {
 
     //factoru
-    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0xAbaf80156857E05b1EB162552Bea517b25F29aD9);
+    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0xEbe79B0eF31aFB3c893e94FE8EbF11D5CB2231d5);
 
     address _fsx=0x6dFB16bc471982f19DB32DEE9b6Fb40Db4503cBF;
     address wbit=0x8734110e5e1dcF439c7F549db740E546fea82d66;
@@ -66,6 +67,8 @@ contract DeployWhitelistedVaultV2Mantle is Script {
     address _user6;
     address _user7;
     address _user8;
+    address _user9;
+    address _user10;
     uint256 _privateKey1;
     uint256 _privateKey2;
     uint256 _privateKey3;
@@ -73,6 +76,7 @@ contract DeployWhitelistedVaultV2Mantle is Script {
 
     int24 _tickLower = 46600;
     int24 _tickUpper = 48700;
+    string pendingReward="pendingFusionX";
     // address _reward = 0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82;
     // //libraries
      address _tickMathLib =0x271d7594985F8CE8CB41c99761C5f42956ff6e5E;
@@ -87,13 +91,13 @@ contract DeployWhitelistedVaultV2Mantle is Script {
 
 
     //FSX / WBIT pool params
-    address[] rewardToLp0AddressPath = [_fsx,musdt, wbit];
+    address[] rewardToLp0AddressPath = [_fsx,musdt,wbit];
     uint24[] rewardToLp0FeePath = [2500,500];
     address[] rewardToLp1AddressPath = [_fsx, wbit];
     uint24[] rewardToLp1FeePath = [2500];
     address  assettoNativeFeed=address(0);
     address rewardtoNativeFeed=address(0);
-    uint256 depositAmount1=10e18;///vault 1 deposit amount
+    uint256 depositAmount1=2e18;///vault 1 deposit amount
 
 
     uint256 stratUpdateDelay = 172800;
@@ -132,6 +136,12 @@ contract DeployWhitelistedVaultV2Mantle is Script {
         uint256 privateKey8 = vm.deriveKey(seedPhrase,7);
         _user8 =vm.addr(privateKey8);
 
+        uint256 privateKey9 = vm.deriveKey(seedPhrase,8);
+        _user9 =vm.addr(privateKey9);
+
+        uint256 privateKey10 = vm.deriveKey(seedPhrase,9);
+        _user10 =vm.addr(privateKey10);
+
         console.log("user1",_user1);
         console.log("user2",_user2);
         console.log("user3",_user3);
@@ -165,7 +175,8 @@ contract DeployWhitelistedVaultV2Mantle is Script {
             _liquidityMathLib,
             _safeCastLib,
             _liquidityAmountsLib,
-            _fullMathLib
+            _fullMathLib,
+            pendingReward
 
         );
         address vaultFsxPool = _createVault(_factory,createVaultParamsFsxPool);
@@ -179,6 +190,8 @@ contract DeployWhitelistedVaultV2Mantle is Script {
         RiveraAutoCompoundingVaultV2Whitelisted(vaultFsxPool).newWhitelist(_user6);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultFsxPool).newWhitelist(_user7);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultFsxPool).newWhitelist(_user8);     
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultFsxPool).newWhitelist(_user9);     
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultFsxPool).newWhitelist(_user10);     
         vm.stopBroadcast(); 
         address[] memory vault=_factory.listAllVaults();
         console.log("all vaults",vault.length);
@@ -186,6 +199,10 @@ contract DeployWhitelistedVaultV2Mantle is Script {
         vm.startBroadcast(_privateKey3);
         IERC20(wbit).approve(vaultFsxPool, depositAmount1);
         RiveraAutoCompoundingVaultV2Whitelisted(vaultFsxPool).deposit(depositAmount1, _user3);
+        vm.stopBroadcast();
+        vm.startBroadcast(_privateKey4);
+        IERC20(wbit).approve(vaultFsxPool, depositAmount1);
+        RiveraAutoCompoundingVaultV2Whitelisted(vaultFsxPool).deposit(depositAmount1, _user4);
         vm.stopBroadcast();
 
     }
