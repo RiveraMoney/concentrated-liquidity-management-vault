@@ -41,7 +41,7 @@ task("TransferTokens", "Task to transfer tokens from a whale to accounts").addPa
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.13",
+    version: "0.8.19",
     settings: {
       optimizer: {
         enabled: true,
@@ -84,9 +84,27 @@ const config: HardhatUserConfig = {
       timeout: 100_000,
       // accounts: [ADMIN_ACCOUNT, TEST_ACCOUNT1, TEST_ACCOUNT2]          //Impersonating another user's private key on local blockchain works only when this is commented out
     },
+    mantle_testnet: {
+      url: "https://rpc.testnet.mantle.xyz",
+      chainId: 5001,
+      // accounts: [MAIN_NET_TRANSACTION_ACCOUNT, TEST_ACCOUNT1, TEST_ACCOUNT2]
+    },
   },
   etherscan: {
-    apiKey: BSC_SCAN_API_KEY
+    apiKey: { 
+      "bsc": BSC_SCAN_API_KEY,
+      "mantle_testnet": 'xyz',
+    },
+    customChains: [
+      {
+        network: "mantle_testnet",
+        chainId: 5001,
+        urls: {
+          apiURL: "https://explorer.testnet.mantle.xyz/api",
+          browserURL: "https://explorer.testnet.mantle.xyz"
+        },
+      },
+    ],
   },
   paths: {
     sources: "./src", // Use ./src rather than ./contracts as Hardhat expects
