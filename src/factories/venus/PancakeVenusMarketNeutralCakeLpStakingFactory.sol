@@ -6,12 +6,13 @@ import '../cake/PancakeVaultCreationStruct.sol';
 contract PancakeVenusMarketNeutralCakeLpStakingFactory {
 
     function createStrat(PancakeVaultParams memory createVaultParams, address vaultAddress, address user, address manager, address router, 
-    address NonfungiblePositionManager, address chef, VenusMarketNeutralParams calldata venusMarketNeutralParams) external returns (address) {
+    address NonfungiblePositionManager, address chef, FeeParams memory feeParams, VenusMarketNeutralParams calldata venusMarketNeutralParams) external returns (address) {
         VenusMarketNeutralCakeLpStakingV1 strategy = new VenusMarketNeutralCakeLpStakingV1();
         strategy.init(CakePoolParams(createVaultParams.tickLower, createVaultParams.tickUpper, createVaultParams.stake, chef, createVaultParams.rewardToLp0AddressPath[0], createVaultParams.tickMathLib, 
         createVaultParams.sqrtPriceMathLib, createVaultParams.liquidityMathLib, createVaultParams.safeCastLib, createVaultParams.liquidityAmountsLib, createVaultParams.fullMathLib, 
         createVaultParams.rewardToLp0AddressPath, createVaultParams.rewardToLp0FeePath, createVaultParams.rewardToLp1AddressPath, createVaultParams.rewardToLp1FeePath, 
-        createVaultParams.rewardtoNativeFeed, createVaultParams.assettoNativeFeed,createVaultParams.pendingReward), CommonAddresses(vaultAddress, router, NonfungiblePositionManager), 
+        createVaultParams.rewardtoNativeFeed, createVaultParams.assettoNativeFeed,createVaultParams.pendingReward), CommonAddresses(vaultAddress, router, NonfungiblePositionManager, feeParams.withdrawFeeDecimals, 
+        feeParams.withdrawFee, feeParams.feeDecimals, feeParams.protocolFee, feeParams.fundManagerFee, feeParams.partnerFee, feeParams.partner), 
         venusMarketNeutralParams.safetyFactor_, venusMarketNeutralParams.vToken0_, venusMarketNeutralParams.vToken1_, venusMarketNeutralParams.distribution_);
         strategy.transferOwnership(user);
         strategy.setManager(manager);

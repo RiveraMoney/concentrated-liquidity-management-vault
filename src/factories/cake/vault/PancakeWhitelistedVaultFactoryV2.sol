@@ -26,11 +26,12 @@ contract PancakeWhitelistedVaultFactoryV2 is IRiveraVaultFactory {
         manager = msg.sender;
     }
 
-    function createVault(PancakeVaultParams memory createVaultParams) external returns (address vaultAddress) {
+    function createVault(PancakeVaultParams memory createVaultParams, FeeParams memory feeParams) external returns (address vaultAddress) {
         RiveraAutoCompoundingVaultV2Whitelisted vault = new RiveraAutoCompoundingVaultV2Whitelisted(createVaultParams.asset, createVaultParams.tokenName, createVaultParams.tokenSymbol, 
         createVaultParams.approvalDelay, createVaultParams.totalTvlCap);
         vaultAddress = address(vault);
-        address stratAddress = PancakeStratFactoryV2(stratFactory).createStrat(createVaultParams, vaultAddress, msg.sender, manager, router, NonfungiblePositionManager, chef);
+        address stratAddress = PancakeStratFactoryV2(stratFactory).createStrat(createVaultParams, vaultAddress, msg.sender, manager, router, NonfungiblePositionManager, 
+        chef, feeParams);
         vault.transferOwnership(msg.sender);
         vault.init(IStrategy(stratAddress));
         allVaults.push(vaultAddress);

@@ -10,7 +10,7 @@ import "@pancakeswap-v3-core/interfaces/IPancakeV3Pool.sol";
 
 import "./interfaces/IMasterChefV3.sol";
 import "./interfaces/INonfungiblePositionManager.sol";
-import "../common/AbstractStrategyV2.sol";
+import "../common/FeeManager.sol";
 import "../utils/StringUtils.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/proxy/utils/Initializable.sol";
@@ -40,7 +40,22 @@ struct CakePoolParams {
     string pendingRewardsFunctionName;
 }
 
-contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, Initializable {
+struct CommonAddresses {
+    address vault;
+    address router;
+    address NonfungiblePositionManager;
+
+    uint256 withdrawFeeDecimals;
+    uint256 withdrawFee;
+
+    uint256 feeDecimals;
+    uint256 protocolFee;
+    uint256 fundManagerFee;
+    uint256 partnerFee;
+    address partner;
+}
+
+contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializable {
     using SafeERC20 for IERC20;
 
     // Tokens used
@@ -123,6 +138,16 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
         manager = msg.sender;
         NonfungiblePositionManager = _commonAddresses.NonfungiblePositionManager;
         pendingRewardsFunctionName=_cakePoolParams.pendingRewardsFunctionName;
+
+        withdrawFeeDecimals = _commonAddresses.withdrawFeeDecimals;
+        withdrawFee = _commonAddresses.withdrawFee;
+
+        feeDecimals = _commonAddresses.feeDecimals;
+        protocolFee = _commonAddresses.protocolFee;
+        fundManagerFee = _commonAddresses.fundManagerFee;
+        partnerFee = _commonAddresses.partnerFee;
+        partner = _commonAddresses.partner;
+
         _giveAllowances();
     }
 
@@ -286,7 +311,8 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
     function withdraw(uint256 _amount) external virtual nonReentrant {
         onlyVault();
         (uint256 userAmount0, uint256 userAmount1) = _withdrawV3(_amount);
-        IERC20(getDepositToken()).safeTransfer(vault, _lptoDepositTokenSwap(userAmount0, userAmount1));
+        uint256 withdrawAmount = _lptoDepositTokenSwap(userAmount0, userAmount1);
+        IERC20(getDepositToken()).safeTransfer(vault, withdrawAmount - withdrawAmount * withdrawFee / withdrawFeeDecimals);
         emit Withdraw(balanceOf(), _amount);
     }
 
@@ -313,12 +339,27 @@ contract CakeLpStakingV2 is AbstractStrategyV2, ReentrancyGuard, ERC721Holder, I
                 type(uint128).max
             )
         );
+        _chargeFees(lpToken0);
+        _chargeFees(lpToken1);
         _deposit();
         emit StratHarvest(
                 msg.sender,
                 rewardBal,
                 balanceOf()
             );
+    }
+
+    function _chargeFees(address token) internal {
+        uint256 tokenBal = IERC20(token).balanceOf(address(this));
+
+        uint256 protocolFeeAmount = tokenBal * protocolFee / feeDecimals;
+        IERC20(token).safeTransfer(manager, protocolFeeAmount);
+
+        uint256 fundManagerFeeAmount = tokenBal * fundManagerFee / feeDecimals;
+        IERC20(token).safeTransfer(owner(), fundManagerFeeAmount);
+
+        uint256 partnerFeeAmount = tokenBal * partnerFee / feeDecimals;
+        IERC20(token).safeTransfer(partner, partnerFeeAmount);
     }
 
     function addLiquidity() internal returns (uint128) {

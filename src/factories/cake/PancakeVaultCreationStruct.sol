@@ -24,6 +24,17 @@ struct PancakeVaultParams {
     string pendingReward;
 }
 
+struct FeeParams {
+    uint256 withdrawFeeDecimals;
+    uint256 withdrawFee;
+
+    uint256 feeDecimals;
+    uint256 protocolFee;
+    uint256 fundManagerFee;
+    uint256 partnerFee;
+    address partner;
+}
+
 struct VenusMarketNeutralParams {
     uint256 safetyFactor_; 
     address vToken0_; 

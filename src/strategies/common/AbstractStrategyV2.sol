@@ -3,12 +3,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/access/Ownable.sol";
 import "@openzeppelin/security/Pausable.sol";
 
-struct CommonAddresses {
-    address vault;
-    address router;
-    address NonfungiblePositionManager;
-}
-
 abstract contract AbstractStrategyV2 is Ownable, Pausable {
     // common addresses for the strategy
     address public vault;

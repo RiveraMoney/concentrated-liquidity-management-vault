@@ -81,6 +81,15 @@ contract CakeLpStakingV2Test is Test {
     uint256 PERCENT_POOL_TVL_OF_CAPITAL = 5;
     uint256 minCapital = 1e18;      //One dollar of denomination asset
 
+    uint256 withdrawFeeDecimals = 10000;
+    uint256 withdrawFee = 10;
+
+    uint256 feeDecimals = 1000;
+    uint256 protocolFee = 15;
+    uint256 fundManagerFee = 15;
+    uint256 partnerFee = 15;
+    address partner = 0xA638177B9c3D96A30B75E6F9e35Baedf3f1954d2;
+
     function setUp() public {
 
         ///@dev all deployments will be made by the user
@@ -90,7 +99,8 @@ contract CakeLpStakingV2Test is Test {
         vault = new RiveraAutoCompoundingVaultV2Public(_usdt, rivTokenName, rivTokenSymbol, stratUpdateDelay, vaultTvlCap);
 
         ///@dev Initializing the strategy
-        CommonAddresses memory _commonAddresses = CommonAddresses(address(vault), _router, _nonFungiblePositionManager);
+        CommonAddresses memory _commonAddresses = CommonAddresses(address(vault), _router, _nonFungiblePositionManager, withdrawFeeDecimals, 
+        withdrawFee, feeDecimals, protocolFee, fundManagerFee, partnerFee, partner);
         CakePoolParams memory cakePoolParams = CakePoolParams(
             _tickLower,
             _tickUpper,
