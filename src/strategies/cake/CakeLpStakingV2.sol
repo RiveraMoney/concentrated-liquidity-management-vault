@@ -63,7 +63,7 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
     address public stake;
     address public lpToken0;
     address public lpToken1;
-    bool public isTokenZeroDeposit;
+    address public depositToken;
 
     // Third party contracts
     address public chef;
@@ -130,7 +130,7 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
         lpToken1 = IPancakeV3Pool(stake).token1();
         (bool success, bytes memory data) = _commonAddresses.vault.call(abi.encodeWithSelector(bytes4(keccak256(bytes('asset()')))));
         require(success, "AF");
-        isTokenZeroDeposit = abi.decode(data, (address)) == lpToken0;
+        depositToken = abi.decode(data, (address));
         rewardtoNativeFeed = _cakePoolParams.rewardtoNativeFeed;
         assettoNativeFeed = _cakePoolParams.assettoNativeFeed;
         vault = _commonAddresses.vault;
@@ -151,14 +151,6 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
         _giveAllowances();
     }
 
-    function getDepositToken() public view returns (address) {
-        if (isTokenZeroDeposit) {
-            return lpToken0;
-        } else {
-            return lpToken1;
-        }
-    }
-
     function deposit() public virtual whenNotPaused {
         onlyVault();
         _deposit();
@@ -166,12 +158,12 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
 
     function _deposit() internal virtual {
         _swapAssetsToNewRangeRatio();
-        depositV3();
-        IERC20(getDepositToken()).safeTransfer(vault, _lptoDepositTokenSwap(IERC20(lpToken0).balanceOf(address(this)), IERC20(lpToken1).balanceOf(address(this))));
+        _depositV3();
+        IERC20(depositToken).safeTransfer(vault, _lptoDepositTokenSwap(IERC20(lpToken0).balanceOf(address(this)), IERC20(lpToken1).balanceOf(address(this))));
     }
 
     // puts the funds to work
-    function depositV3() public {
+    function _depositV3() internal {
         if (tokenID == 0) {         //Strategy does not have an active non fungible liquidity position
             _mintAndAddLiquidityV3();
             _stakeNonFungibleLiquidityPosition();
@@ -180,7 +172,7 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
         }
     }
 
-    function _mintAndAddLiquidityV3() public {
+    function _mintAndAddLiquidityV3() internal {
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
 
@@ -204,13 +196,13 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
         tokenID = tokenId;
     }
 
-    function _stakeNonFungibleLiquidityPosition() public whenNotPaused nonReentrant {
+    function _stakeNonFungibleLiquidityPosition() internal whenNotPaused nonReentrant {
         //Entire LP balance of the strategy contract address is deployed to the farm to earn CAKE
         INonfungiblePositionManager(NonfungiblePositionManager)
             .safeTransferFrom(address(this), chef, tokenID);
     }
 
-    function _increaseLiquidity() public {
+    function _increaseLiquidity() internal {
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
 
@@ -229,7 +221,7 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
         IMasterChefV3(chef).updateLiquidity(tokenID);
     }
 
-    function _burnAndCollectV3() public nonReentrant returns (uint256 amount0, uint256 amount1) {
+    function _burnAndCollectV3() internal nonReentrant returns (uint256 amount0, uint256 amount1) {
         uint128 liquidity = liquidityBalance();
         require(liquidity > 0, "No Liquidity available");
         IMasterChefV3(chef).withdraw(tokenID, address(this)); //transfer the nft back to the user
@@ -258,7 +250,7 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
     }
 
     /// @dev Function to change the asset holding of the strategy contract to new ratio that is the result of change range
-    function _swapAssetsToNewRangeRatio() public {      //lib
+    function _swapAssetsToNewRangeRatio() internal {      //lib
         uint256 currAmount0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 currAmount1Bal = IERC20(lpToken1).balanceOf(address(this));
         (uint256 x, uint256 y) = DexV3Calculations.changeInAmountsToNewRangeRatio(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
@@ -284,7 +276,7 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
 
     function _withdrawV3(uint256 _amount) internal returns (uint256 userAmount0,  uint256 userAmount1) {
         uint128 liquidityDelta = DexV3Calculations.calculateLiquidityDeltaForAssetAmount(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
-        LiquidityDeltaForAssetAmountParams(isTokenZeroDeposit, poolFee, _amount, fullMathLib, liquidityAmountsLib));
+        LiquidityDeltaForAssetAmountParams(depositToken == lpToken0, poolFee, _amount, fullMathLib, liquidityAmountsLib));
         uint128 liquidityAvlbl = liquidityBalance();
         if (liquidityDelta > liquidityAvlbl) {
             liquidityDelta = liquidityAvlbl;
@@ -312,7 +304,7 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
         onlyVault();
         (uint256 userAmount0, uint256 userAmount1) = _withdrawV3(_amount);
         uint256 withdrawAmount = _lptoDepositTokenSwap(userAmount0, userAmount1);
-        IERC20(getDepositToken()).safeTransfer(vault, withdrawAmount - withdrawAmount * withdrawFee / withdrawFeeDecimals);
+        IERC20(depositToken).safeTransfer(vault, withdrawAmount - withdrawAmount * withdrawFee / withdrawFeeDecimals);
         emit Withdraw(balanceOf(), _amount);
     }
 
@@ -321,11 +313,11 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
         IMasterChefV3(chef).harvest(tokenID, address(this));
         uint256 rewardBal = IERC20(reward).balanceOf(address(this));
         if (rewardBal > 0) {
-            if (lpToken0 != reward && isTokenZeroDeposit) {
+            if (lpToken0 != reward && lpToken0 == depositToken) {
                 _swapV3PathIn(rewardToLp0AddressPath, rewardToLp0FeePath, rewardBal);
             }
 
-            if (lpToken1 != reward && !isTokenZeroDeposit) {
+            if (lpToken1 != reward && lpToken1 == depositToken) {
                 _swapV3PathIn(rewardToLp1AddressPath, rewardToLp1FeePath, rewardBal);
             }
 
@@ -362,28 +354,7 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
         IERC20(token).safeTransfer(partner, partnerFeeAmount);
     }
 
-    function addLiquidity() internal returns (uint128) {
-        uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
-        uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
-
-        (uint128 liquidity, , ) = INonfungiblePositionManager(
-            NonfungiblePositionManager
-        ).increaseLiquidity(
-                INonfungiblePositionManager.IncreaseLiquidityParams(
-                    tokenID,
-                    lp0Bal,
-                    lp1Bal,
-                    0,
-                    0,
-                    block.timestamp
-                )
-            );
-        IMasterChefV3(chef).updateLiquidity(tokenID);
-        return liquidity;
-    }
-
     function _lptoDepositTokenSwap(uint256 amount0, uint256 amount1) internal returns (uint256 totalDepositAsset) {
-        address depositToken = getDepositToken();
         uint256 amountOut;
         if (depositToken != lpToken0) {
             if (amount0 != 0) {amountOut = _swapV3In(lpToken0, depositToken, amount0, poolFee);}
@@ -490,8 +461,8 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
     function balanceOf() public view returns (uint256) {
         uint128 totalLiquidityDelta = liquidityBalance();
         (uint256 amount0, uint256 amount1) = DexV3Calculations.liquidityToAmounts(LiquidityToAmountCalcParams(tickLower, tickUpper, totalLiquidityDelta, safeCastLib, sqrtPriceMathLib, tickMathLib, stake));
-        uint256 vaultReserve = IERC20(getDepositToken()).balanceOf(vault);
-        if (isTokenZeroDeposit) {
+        uint256 vaultReserve = IERC20(depositToken).balanceOf(vault);
+        if (depositToken == lpToken0) {
             return amount0 + DexV3Calculations.convertAmount1ToAmount0(amount1, stake, fullMathLib) + vaultReserve;
         } else {
             return DexV3Calculations.convertAmount0ToAmount1(amount0, stake, fullMathLib) + amount1 + vaultReserve;
@@ -516,14 +487,14 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
     }
 
     function lpRewardsAvailable() public view returns (uint256 lpFeesDepositToken) {
-        lpFeesDepositToken = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(isTokenZeroDeposit, tokenID, stake, NonfungiblePositionManager, fullMathLib));
+        lpFeesDepositToken = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(depositToken == lpToken0, tokenID, stake, NonfungiblePositionManager, fullMathLib));
     }
 
     // called as part of strat migration. Sends all the available funds back to the vault.
     function retireStrat() external {
         onlyVault();
         (uint256 amount0, uint256 amount1) = _burnAndCollectV3();
-        IERC20(getDepositToken()).safeTransfer(vault, _lptoDepositTokenSwap(amount0, amount1));
+        IERC20(depositToken).safeTransfer(vault, _lptoDepositTokenSwap(amount0, amount1));
     }
 
     // pauses deposits and withdraws all funds from third party systems.
@@ -531,7 +502,7 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
         onlyManager();
         pause();
         (uint256 amount0, uint256 amount1) = _burnAndCollectV3();
-        IERC20(getDepositToken()).safeTransfer(vault, _lptoDepositTokenSwap(amount0, amount1));
+        IERC20(depositToken).safeTransfer(vault, _lptoDepositTokenSwap(amount0, amount1));
     }
 
     function pause() public {
