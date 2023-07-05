@@ -10,55 +10,45 @@ contract VenusMarketNeutralCakeLpStakingV1 is CakeLpStakingV2 {
 
     uint256 public safetyFactor;        //Represented in mantissa ie scaled up by 1e18
     uint256 public immutable MANTISSA = 1e18;
-    address public vToken0;
-    address public vToken1;
+    address public depositvToken;
+    address public neutralvToken;
+    address public neutralToken;
     address public distribution;
 
     event StratRebalance(address caller, uint256 tvl);
 
     function init(CakePoolParams memory _cakePoolParams, CommonAddresses memory _commonAddresses, uint256 safetyFactor_, address vToken0_, address vToken1_, address distribution_) public initializer {
+        super.init(_cakePoolParams, _commonAddresses);
         safetyFactor = safetyFactor_;
-        vToken0 = vToken0_;
-        vToken1 = vToken1_;
+        neutralToken = depositToken == lpToken0? lpToken1: lpToken0;
+        depositvToken = depositToken == lpToken0? vToken0_: vToken1_;
+        neutralvToken = depositToken == lpToken0? vToken1_: vToken0_;
         distribution = distribution_;
         address[] memory vTokens = new address[](2);
-        vTokens[0] = vToken0;
-        vTokens[1] = vToken1;
+        vTokens[0] = vToken0_;
+        vTokens[1] = vToken1_;
         IVenusDistribution(distribution).enterMarkets(vTokens);
-        super.init(_cakePoolParams, _commonAddresses);
-    }
-
-    function getDepositvToken() public view returns (address) {
-        return isTokenZeroDeposit? vToken0: vToken1;
-    }
-
-    function getNeutralvToken() public view returns (address) {
-        return isTokenZeroDeposit? vToken1: vToken0;
-    }
-
-    function getNeutralToken() public view returns (address) {
-        return isTokenZeroDeposit? lpToken1: lpToken0;
     }
 
     function _deposit() internal override virtual {
-        uint256 amount = IERC20(getDepositToken()).balanceOf(address(this));
+        uint256 amount = IERC20(depositToken).balanceOf(address(this));
         (uint256 lendDep, uint256 lendBorrow) = LendingBasedMarketNeutralCalculations.calculateLendingAmounts(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, 
-        sqrtPriceMathLib, tickMathLib, stake), LendingParams(isTokenZeroDeposit, true, amount, safetyFactor, MANTISSA, fullMathLib, getDepositvToken(), getNeutralvToken(), distribution, address(this)));
+        sqrtPriceMathLib, tickMathLib, stake), LendingParams(depositToken == lpToken0, true, amount, safetyFactor, MANTISSA, fullMathLib, depositvToken, neutralvToken, distribution, address(this)));
         if (lendDep != 0) {
-            IVToken(getDepositvToken()).mint(lendDep);
-            IVToken(getNeutralvToken()).borrow(lendBorrow);
+            IVToken(depositvToken).mint(lendDep);
+            IVToken(neutralvToken).borrow(lendBorrow);
         }
-        depositV3();
+        _depositV3();
     }
 
     function withdraw(uint256 amount) public override virtual {
         onlyVault();
         (uint256 lendWithdraw, uint256 lendRepay) = LendingBasedMarketNeutralCalculations.calculateLendingAmounts(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, 
-        sqrtPriceMathLib, tickMathLib, stake), LendingParams(isTokenZeroDeposit, false, amount, safetyFactor, MANTISSA, fullMathLib, getDepositvToken(), getNeutralvToken(), distribution, address(this)));
-        uint256 assetBalBef = IERC20(getDepositToken()).balanceOf(address(this));
+        sqrtPriceMathLib, tickMathLib, stake), LendingParams(depositToken == lpToken0, false, amount, safetyFactor, MANTISSA, fullMathLib, depositvToken, neutralvToken, distribution, address(this)));
+        uint256 assetBalBef = IERC20(depositToken).balanceOf(address(this));
         _withdrawV3(amount - lendWithdraw);
         _lendingRepayAndWithdraw(lendRepay, lendWithdraw);
-        IERC20(getDepositToken()).safeTransfer(vault, IERC20(getDepositToken()).balanceOf(address(this)) - assetBalBef);
+        IERC20(depositToken).safeTransfer(vault, IERC20(depositToken).balanceOf(address(this)) - assetBalBef);
         emit Withdraw(balanceOf(), amount);
     }
 
@@ -82,13 +72,13 @@ contract VenusMarketNeutralCakeLpStakingV1 is CakeLpStakingV2 {
     }
 
     function _lendingRepayAndWithdraw(uint256 lendRepay, uint256 lendWithdraw) internal {
-        uint256 currBal = IERC20(getNeutralToken()).balanceOf(address(this));
+        uint256 currBal = IERC20(neutralToken).balanceOf(address(this));
         if (currBal < lendRepay) {
-            _swapV3Out(getDepositToken(), getNeutralToken(), lendRepay - currBal, poolFee);
+            _swapV3Out(depositToken, neutralToken, lendRepay - currBal, poolFee);
         }
         if (lendWithdraw != 0) {
-            IVToken(getNeutralvToken()).repayBorrow(lendRepay);
-            IVToken(getDepositvToken()).redeemUnderlying(lendWithdraw);
+            IVToken(neutralvToken).repayBorrow(lendRepay);
+            IVToken(depositvToken).redeemUnderlying(lendWithdraw);
         }
     }
 
@@ -96,8 +86,8 @@ contract VenusMarketNeutralCakeLpStakingV1 is CakeLpStakingV2 {
         _checkOwner();
         DexV3Calculations.checkTicks(tickLower, tickUpper, _tickLower, _tickUpper, tickMathLib, stake);
         _burnAndCollectV3();        //This will return token0 and token1 in a ratio that is corresponding to the current range not the one we're setting it to
-        uint256 totalBorrows = IVToken(getNeutralToken()).borrowBalanceCurrent(address(this));
-        uint256 totalSupplies = IVToken(getDepositToken()).balanceOfUnderlying(address(this));
+        uint256 totalBorrows = IVToken(neutralvToken).borrowBalanceCurrent(address(this));
+        uint256 totalSupplies = IVToken(depositvToken).balanceOfUnderlying(address(this));
         _lendingRepayAndWithdraw(totalBorrows, totalSupplies);
         tickLower = _tickLower;
         tickUpper = _tickUpper;
@@ -110,11 +100,11 @@ contract VenusMarketNeutralCakeLpStakingV1 is CakeLpStakingV2 {
         IMasterChefV3(chef).harvest(tokenID, address(this));
         uint256 rewardBal = IERC20(reward).balanceOf(address(this));
         if (rewardBal > 0) {
-            if (lpToken0 != reward && isTokenZeroDeposit) {
+            if (lpToken0 != reward && depositToken == lpToken0) {
                 _swapV3PathIn(rewardToLp0AddressPath, rewardToLp0FeePath, rewardBal);
             }
 
-            if (lpToken1 != reward && !isTokenZeroDeposit) {
+            if (lpToken1 != reward && depositToken == lpToken1) {
                 _swapV3PathIn(rewardToLp1AddressPath, rewardToLp1FeePath, rewardBal);
             }
 
@@ -140,8 +130,8 @@ contract VenusMarketNeutralCakeLpStakingV1 is CakeLpStakingV2 {
     function rebalance() external virtual {
         _requireNotPaused();
         _burnAndCollectV3();
-        uint256 totalBorrows = IVToken(getNeutralToken()).borrowBalanceCurrent(address(this));
-        uint256 totalSupplies = IVToken(getDepositToken()).balanceOfUnderlying(address(this));
+        uint256 totalBorrows = IVToken(neutralToken).borrowBalanceCurrent(address(this));
+        uint256 totalSupplies = IVToken(depositToken).balanceOfUnderlying(address(this));
         _lendingRepayAndWithdraw(totalBorrows, totalSupplies);
         _deposit();
         emit StratRebalance(msg.sender, balanceOf());
@@ -149,19 +139,19 @@ contract VenusMarketNeutralCakeLpStakingV1 is CakeLpStakingV2 {
 
     function _giveAllowances() internal virtual override {
 
-        IERC20(lpToken0).safeApprove(vToken0, 0);
-        IERC20(lpToken0).safeApprove(vToken0, type(uint256).max);
+        IERC20(depositToken).safeApprove(depositvToken, 0);
+        IERC20(depositToken).safeApprove(depositvToken, type(uint256).max);
 
-        IERC20(lpToken1).safeApprove(vToken1, 0);
-        IERC20(lpToken1).safeApprove(vToken1, type(uint256).max);
+        IERC20(neutralToken).safeApprove(neutralvToken, 0);
+        IERC20(neutralToken).safeApprove(neutralvToken, type(uint256).max);
 
         super._giveAllowances();
 
     }
 
     function _removeAllowances() internal virtual override {
-        IERC20(lpToken0).safeApprove(vToken0, 0);
-        IERC20(lpToken1).safeApprove(vToken1, 0);
+        IERC20(depositToken).safeApprove(depositvToken, 0);
+        IERC20(neutralToken).safeApprove(neutralvToken, 0);
         super._removeAllowances();
     }
 }
