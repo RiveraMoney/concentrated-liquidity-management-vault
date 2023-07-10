@@ -8,7 +8,7 @@ import "@rivera/libs/WhitelistFilter.sol";
 import "@rivera/factories/cake/PancakeStratFactoryV2.sol";
 
 contract HarvestMantle is Script {
-    address[] _vaults = [0x4Eb4378F1fFe76e2F91074FA36cEF04261BB50F5];
+    address[] _vaults = [0xbcA0d7dd435b52B5e69A265Ba54f2C2A5E9c6bB8];
 
     function run() public {
         uint256 ownerPrivateKey = 0xdff8d049b069f97d75a5021c3602165713192730bbca543e630d0b85385e49cb;

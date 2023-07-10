@@ -1,0 +1,573 @@
+diff --git a/projects/v3-core/contracts/libraries/FixedPoint96.sol b/projects/v3-core/contracts/libraries/FixedPoint96.sol
+index 63b42c2..5bc434f 100644
+--- a/projects/v3-core/contracts/libraries/FixedPoint96.sol
++++ b/projects/v3-core/contracts/libraries/FixedPoint96.sol
+@@ -5,6 +5,6 @@ pragma solidity >=0.4.0;
+ /// @notice A library for handling binary fixed point numbers, see https://en.wikipedia.org/wiki/Q_(number_format)
+ /// @dev Used in SqrtPriceMath.sol
+ library FixedPoint96 {
+-    uint8 internal constant RESOLUTION = 96;
+-    uint256 internal constant Q96 = 0x1000000000000000000000000;
++    uint8 public constant RESOLUTION = 96;
++    uint256 public constant Q96 = 0x1000000000000000000000000;
+ }
+diff --git a/projects/v3-core/contracts/libraries/FullMath.sol b/projects/v3-core/contracts/libraries/FullMath.sol
+index ea612be..89affe4 100644
+--- a/projects/v3-core/contracts/libraries/FullMath.sol
++++ b/projects/v3-core/contracts/libraries/FullMath.sol
+@@ -15,7 +15,7 @@ library FullMath {
+         uint256 a,
+         uint256 b,
+         uint256 denominator
+-    ) internal pure returns (uint256 result) {
++    ) public pure returns (uint256 result) {
+         // 512-bit multiply [prod1 prod0] = a * b
+         // Compute the product mod 2**256 and mod 2**256 - 1
+         // then use the Chinese Remainder Theorem to reconstruct
+@@ -114,7 +114,7 @@ library FullMath {
+         uint256 a,
+         uint256 b,
+         uint256 denominator
+-    ) internal pure returns (uint256 result) {
++    ) public pure returns (uint256 result) {
+         result = mulDiv(a, b, denominator);
+         if (mulmod(a, b, denominator) > 0) {
+             require(result < type(uint256).max);
+diff --git a/projects/v3-core/contracts/libraries/LiquidityMath.sol b/projects/v3-core/contracts/libraries/LiquidityMath.sol
+index d5e2303..1683eab 100644
+--- a/projects/v3-core/contracts/libraries/LiquidityMath.sol
++++ b/projects/v3-core/contracts/libraries/LiquidityMath.sol
+@@ -7,7 +7,7 @@ library LiquidityMath {
+     /// @param x The liquidity before change
+     /// @param y The delta by which liquidity should be changed
+     /// @return z The liquidity delta
+-    function addDelta(uint128 x, int128 y) internal pure returns (uint128 z) {
++    function addDelta(uint128 x, int128 y) public pure returns (uint128 z) {
+         if (y < 0) {
+             require((z = x - uint128(-y)) < x, 'LS');
+         } else {
+diff --git a/projects/v3-core/contracts/libraries/SafeCast.sol b/projects/v3-core/contracts/libraries/SafeCast.sol
+index a8ea229..14a8f00 100644
+--- a/projects/v3-core/contracts/libraries/SafeCast.sol
++++ b/projects/v3-core/contracts/libraries/SafeCast.sol
+@@ -7,21 +7,21 @@ library SafeCast {
+     /// @notice Cast a uint256 to a uint160, revert on overflow
+     /// @param y The uint256 to be downcasted
+     /// @return z The downcasted integer, now type uint160
+-    function toUint160(uint256 y) internal pure returns (uint160 z) {
++    function toUint160(uint256 y) public pure returns (uint160 z) {
+         require((z = uint160(y)) == y);
+     }
+ 
+     /// @notice Cast a int256 to a int128, revert on overflow or underflow
+     /// @param y The int256 to be downcasted
+     /// @return z The downcasted integer, now type int128
+-    function toInt128(int256 y) internal pure returns (int128 z) {
++    function toInt128(int256 y) public pure returns (int128 z) {
+         require((z = int128(y)) == y);
+     }
+ 
+     /// @notice Cast a uint256 to a int256, revert on overflow
+     /// @param y The uint256 to be casted
+     /// @return z The casted integer, now type int256
+-    function toInt256(uint256 y) internal pure returns (int256 z) {
++    function toInt256(uint256 y) public pure returns (int256 z) {
+         require(y < 2**255);
+         z = int256(y);
+     }
+diff --git a/projects/v3-core/contracts/libraries/SqrtPriceMath.sol b/projects/v3-core/contracts/libraries/SqrtPriceMath.sol
+index 11db273..3a5f275 100644
+--- a/projects/v3-core/contracts/libraries/SqrtPriceMath.sol
++++ b/projects/v3-core/contracts/libraries/SqrtPriceMath.sol
+@@ -11,8 +11,6 @@ import './FixedPoint96.sol';
+ /// @title Functions based on Q64.96 sqrt price and liquidity
+ /// @notice Contains the math that uses square root of price as a Q64.96 and liquidity to compute deltas
+ library SqrtPriceMath {
+-    using LowGasSafeMath for uint256;
+-    using SafeCast for uint256;
+ 
+     /// @notice Gets the next sqrt price given a delta of token0
+     /// @dev Always rounds up, because in the exact output case (increasing price) we need to move the price at least
+@@ -30,7 +28,7 @@ library SqrtPriceMath {
+         uint128 liquidity,
+         uint256 amount,
+         bool add
+-    ) internal pure returns (uint160) {
++    ) public pure returns (uint160) {
+         // we short circuit amount == 0 because the result is otherwise not guaranteed to equal the input price
+         if (amount == 0) return sqrtPX96;
+         uint256 numerator1 = uint256(liquidity) << FixedPoint96.RESOLUTION;
+@@ -44,14 +42,14 @@ library SqrtPriceMath {
+                     return uint160(FullMath.mulDivRoundingUp(numerator1, sqrtPX96, denominator));
+             }
+ 
+-            return uint160(UnsafeMath.divRoundingUp(numerator1, (numerator1 / sqrtPX96).add(amount)));
++            return uint160(UnsafeMath.divRoundingUp(numerator1, LowGasSafeMath.add((numerator1 / sqrtPX96), amount)));
+         } else {
+             uint256 product;
+             // if the product overflows, we know the denominator underflows
+             // in addition, we must check that the denominator does not underflow
+             require((product = amount * sqrtPX96) / amount == sqrtPX96 && numerator1 > product);
+             uint256 denominator = numerator1 - product;
+-            return FullMath.mulDivRoundingUp(numerator1, sqrtPX96, denominator).toUint160();
++            return SafeCast.toUint160(FullMath.mulDivRoundingUp(numerator1, sqrtPX96, denominator));
+         }
+     }
+ 
+@@ -70,7 +68,7 @@ library SqrtPriceMath {
+         uint128 liquidity,
+         uint256 amount,
+         bool add
+-    ) internal pure returns (uint160) {
++    ) public pure returns (uint160) {
+         // if we're adding (subtracting), rounding down requires rounding the quotient down (up)
+         // in both cases, avoid a mulDiv for most inputs
+         if (add) {
+@@ -80,7 +78,7 @@ library SqrtPriceMath {
+                     : FullMath.mulDiv(amount, FixedPoint96.Q96, liquidity)
+             );
+ 
+-            return uint256(sqrtPX96).add(quotient).toUint160();
++            return SafeCast.toUint160(LowGasSafeMath.add(uint256(sqrtPX96), quotient));
+         } else {
+             uint256 quotient = (
+                 amount <= type(uint160).max
+@@ -106,7 +104,7 @@ library SqrtPriceMath {
+         uint128 liquidity,
+         uint256 amountIn,
+         bool zeroForOne
+-    ) internal pure returns (uint160 sqrtQX96) {
++    ) public pure returns (uint160 sqrtQX96) {
+         require(sqrtPX96 > 0);
+         require(liquidity > 0);
+ 
+@@ -129,7 +127,7 @@ library SqrtPriceMath {
+         uint128 liquidity,
+         uint256 amountOut,
+         bool zeroForOne
+-    ) internal pure returns (uint160 sqrtQX96) {
++    ) public pure returns (uint160 sqrtQX96) {
+         require(sqrtPX96 > 0);
+         require(liquidity > 0);
+ 
+@@ -153,7 +151,7 @@ library SqrtPriceMath {
+         uint160 sqrtRatioBX96,
+         uint128 liquidity,
+         bool roundUp
+-    ) internal pure returns (uint256 amount0) {
++    ) public pure returns (uint256 amount0) {
+         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+ 
+         uint256 numerator1 = uint256(liquidity) << FixedPoint96.RESOLUTION;
+@@ -182,7 +180,7 @@ library SqrtPriceMath {
+         uint160 sqrtRatioBX96,
+         uint128 liquidity,
+         bool roundUp
+-    ) internal pure returns (uint256 amount1) {
++    ) public pure returns (uint256 amount1) {
+         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+ 
+         return
+@@ -200,11 +198,11 @@ library SqrtPriceMath {
+         uint160 sqrtRatioAX96,
+         uint160 sqrtRatioBX96,
+         int128 liquidity
+-    ) internal pure returns (int256 amount0) {
++    ) public pure returns (int256 amount0) {
+         return
+             liquidity < 0
+-                ? -getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false).toInt256()
+-                : getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true).toInt256();
++                ? - SafeCast.toInt256(getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false))
++                : SafeCast.toInt256(getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true));
+     }
+ 
+     /// @notice Helper that gets signed token1 delta
+@@ -216,10 +214,10 @@ library SqrtPriceMath {
+         uint160 sqrtRatioAX96,
+         uint160 sqrtRatioBX96,
+         int128 liquidity
+-    ) internal pure returns (int256 amount1) {
++    ) public pure returns (int256 amount1) {
+         return
+             liquidity < 0
+-                ? -getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false).toInt256()
+-                : getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true).toInt256();
++                ? -SafeCast.toInt256(getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false))
++                : SafeCast.toInt256(getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true));
+     }
+ }
+diff --git a/projects/v3-core/contracts/libraries/TickMath.sol b/projects/v3-core/contracts/libraries/TickMath.sol
+index ee48fee..5518cc3 100644
+--- a/projects/v3-core/contracts/libraries/TickMath.sol
++++ b/projects/v3-core/contracts/libraries/TickMath.sol
+@@ -6,21 +6,21 @@ pragma solidity >=0.5.0 <0.8.0;
+ /// prices between 2**-128 and 2**128
+ library TickMath {
+     /// @dev The minimum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**-128
+-    int24 internal constant MIN_TICK = -887272;
++    int24 public constant MIN_TICK = -887272;
+     /// @dev The maximum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**128
+-    int24 internal constant MAX_TICK = -MIN_TICK;
++    int24 public constant MAX_TICK = -MIN_TICK;
+ 
+     /// @dev The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
+-    uint160 internal constant MIN_SQRT_RATIO = 4295128739;
++    uint160 public constant MIN_SQRT_RATIO = 4295128739;
+     /// @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
+-    uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
++    uint160 public constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
+ 
+     /// @notice Calculates sqrt(1.0001^tick) * 2^96
+     /// @dev Throws if |tick| > max tick
+     /// @param tick The input tick for the above formula
+     /// @return sqrtPriceX96 A Fixed point Q64.96 number representing the sqrt of the ratio of the two assets (token1/token0)
+     /// at the given tick
+-    function getSqrtRatioAtTick(int24 tick) internal pure returns (uint160 sqrtPriceX96) {
++    function getSqrtRatioAtTick(int24 tick) public pure returns (uint160 sqrtPriceX96) {
+         uint256 absTick = tick < 0 ? uint256(-int256(tick)) : uint256(int256(tick));
+         require(absTick <= uint256(MAX_TICK), 'T');
+ 
+@@ -58,7 +58,7 @@ library TickMath {
+     /// ever return.
+     /// @param sqrtPriceX96 The sqrt ratio for which to compute the tick as a Q64.96
+     /// @return tick The greatest tick for which the ratio is less than or equal to the input ratio
+-    function getTickAtSqrtRatio(uint160 sqrtPriceX96) internal pure returns (int24 tick) {
++    function getTickAtSqrtRatio(uint160 sqrtPriceX96) public pure returns (int24 tick) {
+         // second inequality must be < because the price can never reach the price at the max tick
+         require(sqrtPriceX96 >= MIN_SQRT_RATIO && sqrtPriceX96 < MAX_SQRT_RATIO, 'R');
+         uint256 ratio = uint256(sqrtPriceX96) << 32;
+diff --git a/projects/v3-core/deployments/libraries/local.json b/projects/v3-core/deployments/libraries/local.json
+new file mode 100644
+index 0000000..845760a
+--- /dev/null
++++ b/projects/v3-core/deployments/libraries/local.json
+@@ -0,0 +1,10 @@
++{
++  "TickMath": "0xbA839d70B635A27bB0481731C05c24aDa7Fc9Db9",
++  "SqrtPriceMath": "0xa16bEfe55b9Fa562bc99c03122E6b2a88301677B",
++  "LiquidityMath": "0xD125f080CeeDc8950257d7209a9af715E13D56c0",
++  "SafeCast": "0x4C79c18b90FE6F9051ba29CeC9CFC120564DCD98",
++  "FullMath": "0x38D9e15E5AAD896e9be0214fCffc978b852F8A16",
++  "LowGasSafeMath": "0x8e42655fdb86607B803b162f48634F916De36F80",
++  "UnsafeMath": "0x6BE3657fB5523e5e48902EA4E42cFC04dD0391d0",
++  "FixedPoint96": "0xC3D893BbDb0925918E786663501D608Bb4528e6A"
++}
+\ No newline at end of file
+diff --git a/projects/v3-core/hardhat.config.ts b/projects/v3-core/hardhat.config.ts
+index f54197b..2b7a623 100644
+--- a/projects/v3-core/hardhat.config.ts
++++ b/projects/v3-core/hardhat.config.ts
+@@ -74,6 +74,12 @@ const eth: NetworkUserConfig = {
+   accounts: [process.env.KEY_ETH!],
+ }
+ 
++const local: NetworkUserConfig = {
++  url: 'http://127.0.0.1:8545',
++  chainId: 56,
++  accounts: [process.env.KEY_MAINNET!],
++}
++
+ export default {
+   networks: {
+     hardhat: {
+@@ -83,6 +89,7 @@ export default {
+     ...(process.env.KEY_MAINNET && { bscMainnet }),
+     ...(process.env.KEY_GOERLI && { goerli }),
+     ...(process.env.KEY_ETH && { eth }),
++    ...(process.env.KEY_MAINNET && { local }),
+     // mainnet: bscMainnet,
+   },
+   etherscan: {
+diff --git a/projects/v3-core/scripts/deployLibraries.ts b/projects/v3-core/scripts/deployLibraries.ts
+new file mode 100644
+index 0000000..ef646dd
+--- /dev/null
++++ b/projects/v3-core/scripts/deployLibraries.ts
+@@ -0,0 +1,142 @@
++import { tryVerify } from '@pancakeswap/common/verify'
++import { ContractFactory } from 'ethers'
++import { ethers, network } from 'hardhat'
++import fs from 'fs'
++
++type ContractJson = { abi: any; bytecode: string }
++const artifacts: { [name: string]: ContractJson } = {
++  // eslint-disable-next-line global-require
++  TickMath: require('../artifacts/contracts/libraries/TickMath.sol/TickMath.json'),
++  // eslint-disable-next-line global-require
++  LowGasSafeMath: require('../artifacts/contracts/libraries/LowGasSafeMath.sol/LowGasSafeMath.json'),
++  // eslint-disable-next-line global-require
++  UnsafeMath: require('../artifacts/contracts/libraries/UnsafeMath.sol/UnsafeMath.json'),
++  // eslint-disable-next-line global-require
++  FixedPoint96: require('../artifacts/contracts/libraries/FixedPoint96.sol/FixedPoint96.json'),
++  // eslint-disable-next-line global-require
++  SqrtPriceMath: require('../artifacts/contracts/libraries/SqrtPriceMath.sol/SqrtPriceMath.json'),
++  // eslint-disable-next-line global-require
++  LiquidityMath: require('../artifacts/contracts/libraries/LiquidityMath.sol/LiquidityMath.json'),
++  // eslint-disable-next-line global-require
++  SafeCast: require('../artifacts/contracts/libraries/SafeCast.sol/SafeCast.json'),
++  // eslint-disable-next-line global-require
++  FullMath: require('../artifacts/contracts/libraries/FullMath.sol/FullMath.json'),
++}
++
++async function main() {
++  const [owner] = await ethers.getSigners()
++  const networkName = network.name
++  console.log('owner', owner.address)
++
++  const TickMath = new ContractFactory(
++    artifacts.TickMath.abi,
++    artifacts.TickMath.bytecode,
++    owner
++  )
++  let tickMath = await TickMath.deploy()
++  await tickMath.deployed()
++
++  let tickMath_address = tickMath.address
++  console.log('TickMath', tickMath_address)
++
++  const SafeCast = new ContractFactory(
++    artifacts.SafeCast.abi,
++    artifacts.SafeCast.bytecode,
++    owner
++  )
++  let safeCast = await SafeCast.deploy()
++  await safeCast.deployed()
++
++  let safeCast_address = safeCast.address
++  console.log('SafeCast', safeCast_address)
++
++  const FullMath = new ContractFactory(
++    artifacts.FullMath.abi,
++    artifacts.FullMath.bytecode,
++    owner
++  )
++  let fullMath = await FullMath.deploy()
++  await fullMath.deployed()
++
++  let fullMath_address = fullMath.address
++  console.log('FullMath', fullMath_address)
++
++  const LowGasSafeMath = new ContractFactory(
++    artifacts.LowGasSafeMath.abi,
++    artifacts.LowGasSafeMath.bytecode,
++    owner
++  )
++  let lowGasSafeMath = await LowGasSafeMath.deploy()
++  await lowGasSafeMath.deployed()
++
++  let lowGasSafeMath_address = lowGasSafeMath.address
++  console.log('LowGasSafeMath', lowGasSafeMath_address)
++
++  const UnsafeMath = new ContractFactory(
++    artifacts.UnsafeMath.abi,
++    artifacts.UnsafeMath.bytecode,
++    owner
++  )
++  let unsafeMath = await UnsafeMath.deploy()
++  await unsafeMath.deployed()
++
++  let unsafeMath_address = unsafeMath.address
++  console.log('UnsafeMath', unsafeMath_address)
++
++  const FixedPoint96 = new ContractFactory(
++    artifacts.FixedPoint96.abi,
++    artifacts.FixedPoint96.bytecode,
++    owner
++  )
++  let fixedPoint96 = await FixedPoint96.deploy()
++  await fixedPoint96.deployed()
++
++  let fixedPoint96_address = fixedPoint96.address
++  console.log('FixedPoint96', fixedPoint96_address)
++
++  const SqrtPriceMath = await ethers.getContractFactory("SqrtPriceMath", {
++    signer: owner,
++    libraries: {
++        SafeCast: safeCast_address,
++        FullMath: fullMath_address,
++    },
++  });
++
++  let sqrtPriceMath = await SqrtPriceMath.deploy()
++  await sqrtPriceMath.deployed()
++
++  let sqrtPriceMath_address = sqrtPriceMath.address
++  console.log('SqrtPriceMath', sqrtPriceMath_address)
++
++  const LiquidityMath = new ContractFactory(
++    artifacts.LiquidityMath.abi,
++    artifacts.LiquidityMath.bytecode,
++    owner
++  )
++  let liquidityMath = await LiquidityMath.deploy()
++  await liquidityMath.deployed()
++
++  let liquidityMath_address = liquidityMath.address
++  console.log('LiquidityMath', liquidityMath_address)
++
++
++  const contracts = {
++    TickMath: tickMath_address,
++    SqrtPriceMath: sqrtPriceMath_address,
++    LiquidityMath: liquidityMath_address,
++    SafeCast: safeCast_address,
++    FullMath: fullMath_address,
++    LowGasSafeMath: lowGasSafeMath_address,
++    UnsafeMath: unsafeMath_address,
++    FixedPoint96: fixedPoint96_address
++  }
++
++  fs.writeFileSync(`./deployments/libraries/${networkName}.json`, JSON.stringify(contracts, null, 2))
++}
++
++main()
++  .then(() => process.exit(0))
++  .catch((error) => {
++    console.error(error)
++    process.exit(1)
++  })
+diff --git a/projects/v3-periphery/contracts/libraries/LiquidityAmounts.sol b/projects/v3-periphery/contracts/libraries/LiquidityAmounts.sol
+index f050d2a..2d7b12b 100644
+--- a/projects/v3-periphery/contracts/libraries/LiquidityAmounts.sol
++++ b/projects/v3-periphery/contracts/libraries/LiquidityAmounts.sol
+@@ -10,7 +10,7 @@ library LiquidityAmounts {
+     /// @notice Downcasts uint256 to uint128
+     /// @param x The uint258 to be downcasted
+     /// @return y The passed value, downcasted to uint128
+-    function toUint128(uint256 x) private pure returns (uint128 y) {
++    function toUint128(uint256 x) public pure returns (uint128 y) {
+         require((y = uint128(x)) == x);
+     }
+ 
+@@ -24,7 +24,7 @@ library LiquidityAmounts {
+         uint160 sqrtRatioAX96,
+         uint160 sqrtRatioBX96,
+         uint256 amount0
+-    ) internal pure returns (uint128 liquidity) {
++    ) public pure returns (uint128 liquidity) {
+         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+         uint256 intermediate = FullMath.mulDiv(sqrtRatioAX96, sqrtRatioBX96, FixedPoint96.Q96);
+         return toUint128(FullMath.mulDiv(amount0, intermediate, sqrtRatioBX96 - sqrtRatioAX96));
+@@ -40,7 +40,7 @@ library LiquidityAmounts {
+         uint160 sqrtRatioAX96,
+         uint160 sqrtRatioBX96,
+         uint256 amount1
+-    ) internal pure returns (uint128 liquidity) {
++    ) public pure returns (uint128 liquidity) {
+         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+         return toUint128(FullMath.mulDiv(amount1, FixedPoint96.Q96, sqrtRatioBX96 - sqrtRatioAX96));
+     }
+@@ -59,7 +59,7 @@ library LiquidityAmounts {
+         uint160 sqrtRatioBX96,
+         uint256 amount0,
+         uint256 amount1
+-    ) internal pure returns (uint128 liquidity) {
++    ) public pure returns (uint128 liquidity) {
+         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+ 
+         if (sqrtRatioX96 <= sqrtRatioAX96) {
+@@ -83,7 +83,7 @@ library LiquidityAmounts {
+         uint160 sqrtRatioAX96,
+         uint160 sqrtRatioBX96,
+         uint128 liquidity
+-    ) internal pure returns (uint256 amount0) {
++    ) public pure returns (uint256 amount0) {
+         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+ 
+         return
+@@ -103,7 +103,7 @@ library LiquidityAmounts {
+         uint160 sqrtRatioAX96,
+         uint160 sqrtRatioBX96,
+         uint128 liquidity
+-    ) internal pure returns (uint256 amount1) {
++    ) public pure returns (uint256 amount1) {
+         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+ 
+         return FullMath.mulDiv(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint96.Q96);
+@@ -122,7 +122,7 @@ library LiquidityAmounts {
+         uint160 sqrtRatioAX96,
+         uint160 sqrtRatioBX96,
+         uint128 liquidity
+-    ) internal pure returns (uint256 amount0, uint256 amount1) {
++    ) public pure returns (uint256 amount0, uint256 amount1) {
+         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+ 
+         if (sqrtRatioX96 <= sqrtRatioAX96) {
+diff --git a/projects/v3-periphery/deployments/libraries/local.json b/projects/v3-periphery/deployments/libraries/local.json
+new file mode 100644
+index 0000000..307326e
+--- /dev/null
++++ b/projects/v3-periphery/deployments/libraries/local.json
+@@ -0,0 +1,3 @@
++{
++  "LiquidityAmounts": "0xBd9143688cB5E46d1a6d96bCf5833760f299cc4D"
++}
+\ No newline at end of file
+diff --git a/projects/v3-periphery/hardhat.config.ts b/projects/v3-periphery/hardhat.config.ts
+index 8c1af0f..52e5742 100644
+--- a/projects/v3-periphery/hardhat.config.ts
++++ b/projects/v3-periphery/hardhat.config.ts
+@@ -75,6 +75,12 @@ const eth: NetworkUserConfig = {
+   accounts: [process.env.KEY_ETH!],
+ }
+ 
++const local: NetworkUserConfig = {
++  url: 'http://127.0.0.1:8545',
++  chainId: 56,
++  accounts: [process.env.KEY_MAINNET!],
++}
++
+ export default {
+   networks: {
+     hardhat: {
+@@ -84,6 +90,7 @@ export default {
+     ...(process.env.KEY_MAINNET && { bscMainnet }),
+     ...(process.env.KEY_GOERLI && { goerli }),
+     ...(process.env.KEY_ETH && { eth }),
++    ...(process.env.KEY_MAINNET && { local }),
+     // mainnet: bscMainnet,
+   },
+   etherscan: {
+diff --git a/projects/v3-periphery/scripts/deployLibraries.ts b/projects/v3-periphery/scripts/deployLibraries.ts
+new file mode 100644
+index 0000000..50ea4ab
+--- /dev/null
++++ b/projects/v3-periphery/scripts/deployLibraries.ts
+@@ -0,0 +1,36 @@
++import { ethers, network } from 'hardhat'
++import fs from 'fs'
++
++const networkName = network.name
++const deployedCoreLibraries: { [name: string]: string } = require(`../../v3-core/deployments/libraries/${networkName}.json`)
++console.log(deployedCoreLibraries);
++
++async function main() {
++  const [owner] = await ethers.getSigners()
++  console.log('owner', owner.address)
++
++  const LiquidityAmounts = await ethers.getContractFactory("LiquidityAmounts", {
++    signer: owner,
++    libraries: {
++        FullMath: deployedCoreLibraries.FullMath,
++    },
++  });
++  let liquidityAmounts = await LiquidityAmounts.deploy()
++  await liquidityAmounts.deployed()
++
++  let liquidityAmounts_address = liquidityAmounts.address
++  console.log('LiquidityAmounts', liquidityAmounts_address)
++
++  const contracts = {
++    LiquidityAmounts: liquidityAmounts_address
++  }
++
++  fs.writeFileSync(`./deployments/libraries/${networkName}.json`, JSON.stringify(contracts, null, 2))
++}
++
++main()
++  .then(() => process.exit(0))
++  .catch((error) => {
++    console.error(error)
++    process.exit(1)
++  })

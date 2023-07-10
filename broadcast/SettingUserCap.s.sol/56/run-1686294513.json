@@ -1,0 +1,66 @@
+{
+  "transactions": [
+    {
+      "hash": "0xbcefff04901350f186672980f79ab1fa787c164fba590438580b44e211819150",
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0x8Ff3b85b341fAd37417f77567624b08B5142fD5c",
+      "function": null,
+      "arguments": null,
+      "rpc": "http://localhost:8545",
+      "transaction": {
+        "type": "0x00",
+        "from": "0x29782e6eefef1255d1ddc2bd1b4851b890614868",
+        "to": "0x8ff3b85b341fad37417f77567624b08b5142fd5c",
+        "gas": "0x108cf",
+        "value": "0x0",
+        "data": "0xb85d9c25000000000000000000000000cf288dc70983d17c83ea1b80579b211c510438010000000000000000000000000000000000000000000000056bc75e2d63100000",
+        "nonce": "0x1f"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [
+    {
+      "transactionHash": "0xbcefff04901350f186672980f79ab1fa787c164fba590438580b44e211819150",
+      "transactionIndex": "0x0",
+      "blockHash": "0xe5dbfcc64b7bae10add5bc4a39a23abcaf58d97fe3ac0a3d5423f70502a21634",
+      "blockNumber": "0x1b99f94",
+      "from": "0x29782e6eefef1255D1DDC2Bd1b4851B890614868",
+      "to": "0x8Ff3b85b341fAd37417f77567624b08B5142fD5c",
+      "cumulativeGasUsed": "0xbfb8",
+      "gasUsed": "0xbfb8",
+      "contractAddress": null,
+      "logs": [
+        {
+          "address": "0x8Ff3b85b341fAd37417f77567624b08B5142fD5c",
+          "topics": [
+            "0xc1fa2a9952be0d43691fcfb2f79585c61f18978d7be1af78c4882302c3f8d296",
+            "0x00000000000000000000000029782e6eefef1255d1ddc2bd1b4851b890614868",
+            "0x000000000000000000000000cf288dc70983d17c83ea1b80579b211c51043801"
+          ],
+          "data": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000056bc75e2d63100000",
+          "blockHash": "0xe5dbfcc64b7bae10add5bc4a39a23abcaf58d97fe3ac0a3d5423f70502a21634",
+          "blockNumber": "0x1b99f94",
+          "transactionHash": "0xbcefff04901350f186672980f79ab1fa787c164fba590438580b44e211819150",
+          "transactionIndex": "0x0",
+          "logIndex": "0x0",
+          "transactionLogIndex": "0x0",
+          "removed": false
+        }
+      ],
+      "status": "0x1",
+      "logsBloom": "0x00000000002000000000000000000000000010000000000000000000200000000000010000000000000000000000080000000000000000000000000000000000000000000000000040000000000000000000020000000000000000000000000000000000000000000000000000800000000000000000000008000000000000000000000000000000000000000000000000000001000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000",
+      "effectiveGasPrice": "0x3b9f148a"
+    }
+  ],
+  "libraries": [],
+  "pending": [],
+  "path": "/Users/prajwalghate/Documents/Authlink/Private/alphav2/new/farming-vault-factory-old/broadcast/SettingUserCap.s.sol/56/run-latest.json",
+  "returns": {},
+  "timestamp": 1686294513,
+  "chain": 56,
+  "multi": false,
+  "commit": "0b9239e"
+}

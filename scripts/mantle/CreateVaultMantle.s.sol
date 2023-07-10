@@ -55,16 +55,16 @@ contract CreateVaultMantle is Script {
     address dai=0xB38E748dbCe79849b8298A1D206C8374EFc16DA7;
 
     //edit params according to vault to be deployed
-    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0xAd70E786D361E8EC1d6fE17A41629bB497C50A13);
+    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0xEbe79B0eF31aFB3c893e94FE8EbF11D5CB2231d5);
 
     //vault 1 params
-    address asset1=0xc92747b1e4Bd5F89BBB66bAE657268a5F4c4850C;
+    address asset1=0xB38E748dbCe79849b8298A1D206C8374EFc16DA7;
     uint256 vaultTvlCap1 = 10000e18;
     uint256 stratUpdateDelay1 = 172800;
     string tokenName1="Riv-DAI-MUSDC-Vault";
     string tokenSymbol1="Riv-DAI-MUSDC-Vault";
-    int24 tickLower1=-6504;
-    int24 tickUpper1=-6404;
+    int24 tickLower1=6152;
+    int24 tickUpper1=6932;
     address stake1 = 0xD5E4DBEca6055535B6FBf4c4Bc51bDc104dE9EA6;
     address[] rewardToLp0AddressPath1 = [_fsx,dai];
     uint24[] rewardToLp0FeePath1 = [10000];

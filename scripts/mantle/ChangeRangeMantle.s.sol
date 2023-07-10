@@ -9,9 +9,9 @@ import "@rivera/vaults/RiveraAutoCompoundingVaultV2Whitelisted.sol";
 import "@rivera/factories/cake/PancakeStratFactoryV2.sol";
 
 contract ChangeRangeMantle is Script {
-    address _vault=0x4Eb4378F1fFe76e2F91074FA36cEF04261BB50F5;
-    int24 newTickLower=65800;
-    int24 newTickUpper=67900;
+    address _vault=0xbcA0d7dd435b52B5e69A265Ba54f2C2A5E9c6bB8;
+    int24 newTickLower=62150;
+    int24 newTickUpper=92110;
 
     function run() public {
 

@@ -1,0 +1,33 @@
+{
+  "transactions": [
+    {
+      "hash": null,
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+      "function": null,
+      "arguments": null,
+      "rpc": "http://localhost:8545",
+      "transaction": {
+        "type": "0x00",
+        "from": "0x2acc49a84919ab9cf0eb6576432e9b09d78650e6",
+        "to": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+        "gas": "0xf889",
+        "value": "0x0",
+        "data": "0x095ea7b3000000000000000000000000ea169315f4c789f6cbdba4b557f0a014a6b5d38d0000000000000000000000000000000000000000000000056bc75e2d63100000",
+        "nonce": "0x0"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [],
+  "path": "/Users/prajwalghate/Documents/Authlink/Private/alphav2/new/farming-vault-factory-old/broadcast/DepositInVault.s.sol/56/run-latest.json",
+  "returns": {},
+  "timestamp": 1685780115,
+  "chain": 56,
+  "multi": false,
+  "commit": "59fbb52"
+}

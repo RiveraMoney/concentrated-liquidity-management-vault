@@ -30,6 +30,19 @@ struct PancakeVaultParams {
     address fullMathLib;
     string pendingReward;
 }
+
+struct FeeParams {
+    uint256 withdrawFeeDecimals;
+    uint256 withdrawFee;
+
+    uint256 feeDecimals;
+    uint256 protocolFee;
+    uint256 fundManagerFee;
+    uint256 partnerFee;
+    address partner;
+}
+
+
 enum VaultType {
         PRIVATE ,
         PUBLIC,
@@ -42,7 +55,7 @@ interface IRiveraVaultFactoryV2
 
     function allVaults(uint) external view returns (address vault);
     function listAllVaults() external view returns (address[] memory);
-    function createVault(PancakeVaultParams memory createVaultParams) external returns (address vault);
+    function createVault(PancakeVaultParams memory createVaultParams,FeeParams memory feePArams) external returns (address vault);
 
 }
 
@@ -52,7 +65,7 @@ interface IRiveraVaultFactoryV2
 contract DeployWhitelistedVaultV2Mantle is Script {
 
     //factoru
-    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0xEbe79B0eF31aFB3c893e94FE8EbF11D5CB2231d5);
+    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0xC6464Dbb1dda6479d5402E955beEf5Fb81c7dA43);
 
     address _fsx=0x6dFB16bc471982f19DB32DEE9b6Fb40Db4503cBF;
     address wbit=0x8734110e5e1dcF439c7F549db740E546fea82d66;
@@ -179,7 +192,10 @@ contract DeployWhitelistedVaultV2Mantle is Script {
             pendingReward
 
         );
-        address vaultFsxPool = _createVault(_factory,createVaultParamsFsxPool);
+        FeeParams memory feeParams = FeeParams(
+            1,1,1,1,1,1,_user1
+        );
+        address vaultFsxPool = _createVault(_factory,createVaultParamsFsxPool,feeParams);
         console.log("Vault FSX / WBIT ",vaultFsxPool);
         console.log("======================");
         //whitelist the users
@@ -207,9 +223,9 @@ contract DeployWhitelistedVaultV2Mantle is Script {
 
     }
 
-    function _createVault(IRiveraVaultFactoryV2 factory,PancakeVaultParams memory createVaultParams) internal returns (address vaultAddress){
+    function _createVault(IRiveraVaultFactoryV2 factory,PancakeVaultParams memory createVaultParams,FeeParams memory feeParams) internal returns (address vaultAddress){
         
-        vaultAddress =factory.createVault(createVaultParams); 
+        vaultAddress =factory.createVault(createVaultParams,feeParams); 
     }
 }
 
