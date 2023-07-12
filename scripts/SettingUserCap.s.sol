@@ -4,7 +4,7 @@ import "forge-std/Script.sol";
 import "forge-std/console2.sol";
 import "@rivera/strategies/common/interfaces/IStrategy.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2Whitelisted.sol";
-import "@rivera/factories/cake/PancakeStratFactoryV2.sol";
+import "@rivera/factories/staking/RiveraConcLpStakingStratFactory.sol";
 
 contract SettingUserCap is Script {
     address _vaultBnb=0x10DAF097374e6C4F6f2fcBD2586519E9cBb803D3;

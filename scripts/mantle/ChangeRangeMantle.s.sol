@@ -6,7 +6,7 @@ import "forge-std/Script.sol";
 import "forge-std/console2.sol";
 import "@rivera/strategies/common/interfaces/IStrategy.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2Whitelisted.sol";
-import "@rivera/factories/cake/PancakeStratFactoryV2.sol";
+import "@rivera/factories/staking/RiveraConcLpStakingStratFactory.sol";
 
 contract ChangeRangeMantle is Script {
     address _vault=0xbcA0d7dd435b52B5e69A265Ba54f2C2A5E9c6bB8;

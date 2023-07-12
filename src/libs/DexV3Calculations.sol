@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 import "@pancakeswap-v3-core/interfaces/IPancakeV3Pool.sol";
 import "@pancakeswap-v3-core/libraries/FixedPoint96.sol";
 import "@pancakeswap-v3-core/libraries/FixedPoint128.sol";
-import "@rivera/strategies/cake/interfaces/INonfungiblePositionManager.sol";
+import "@rivera/strategies/staking/interfaces/INonfungiblePositionManager.sol";
 
-import "@rivera/strategies/cake/interfaces/libraries/ITickMathLib.sol";
-import "@rivera/strategies/cake/interfaces/libraries/ISqrtPriceMathLib.sol";
-import "@rivera/strategies/cake/interfaces/libraries/ILiquidityMathLib.sol";
-import "@rivera/strategies/cake/interfaces/libraries/ISafeCastLib.sol";
-import "@rivera/strategies/cake/interfaces/libraries/ILiquidityAmountsLib.sol";
-import "@rivera/strategies/cake/interfaces/libraries/IFullMathLib.sol";
+import "@rivera/strategies/staking/interfaces/libraries/ITickMathLib.sol";
+import "@rivera/strategies/staking/interfaces/libraries/ISqrtPriceMathLib.sol";
+import "@rivera/strategies/staking/interfaces/libraries/ILiquidityMathLib.sol";
+import "@rivera/strategies/staking/interfaces/libraries/ISafeCastLib.sol";
+import "@rivera/strategies/staking/interfaces/libraries/ILiquidityAmountsLib.sol";
+import "@rivera/strategies/staking/interfaces/libraries/IFullMathLib.sol";
 
 import "@rivera/libs/DexV3CalculationStruct.sol";
 

@@ -3,13 +3,11 @@ pragma solidity ^0.8.4;
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2Whitelisted.sol";
-// import "@rivera/factories/cake/vault/PancakeWhitelistedVaultFactoryV2.sol";
+// import "@rivera/factories/staking/vault/RiveraConcLiqStakingWhiLisVaultFactory.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
-// import '@rivera/factories/cake/PancakeVaultCreationStruct.sol';
-import "@pancakeswap-v3-core/interfaces/IPancakeV3Pool.sol";
+// import '@rivera/factories/staking/RiveraLpStakingVaultCreationStruct.sol';
 
-
-struct PancakeVaultParams {
+struct RiveraVaultParams {
     address asset;
     uint256 totalTvlCap;
     uint256 approvalDelay;
@@ -44,7 +42,7 @@ interface IRiveraVaultFactoryV2
 
     function allVaults(uint) external view returns (address vault);
     function listAllVaults() external view returns (address[] memory);
-    function createVault(PancakeVaultParams memory createVaultParams) external returns (address vault);
+    function createVault(RiveraVaultParams memory createVaultParams) external returns (address vault);
 
 }
 contract CreateVaultMantle is Script {
@@ -93,15 +91,9 @@ contract CreateVaultMantle is Script {
 
     function run() public {
         uint256 ownerPrivateKey = 0xdff8d049b069f97d75a5021c3602165713192730bbca543e630d0b85385e49cb;
-        // int24 tickSpacing = IPancakeV3Pool(stake).tickSpacing();
-        // //console2 int24
-        // console2.logInt(tickSpacing);
-        // //conosle.log  lp0token and lp1token
-        // console.log("lp0token",IPancakeV3Pool(stake).token0());
-        // console.log("lp1token",IPancakeV3Pool(stake).token1());
 
-        PancakeVaultParams[] memory vaults =new PancakeVaultParams[](1);
-        vaults[0]=PancakeVaultParams(
+        RiveraVaultParams[] memory vaults =new RiveraVaultParams[](1);
+        vaults[0]=RiveraVaultParams(
             asset1,
             vaultTvlCap1,
             stratUpdateDelay1,

@@ -1,15 +1,15 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-import "../../../src/strategies/cake/CakeLpStakingV2.sol";
+import "../../../src/strategies/staking/RiveraConcLpStaking.sol";
 import "../../../src/strategies/common/interfaces/IStrategy.sol";
 import "../../../src/vaults/RiveraAutoCompoundingVaultV2Public.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
 
-import "@rivera/strategies/cake/interfaces/INonfungiblePositionManager.sol";
+import "@rivera/strategies/staking/interfaces/INonfungiblePositionManager.sol";
 import "@pancakeswap-v3-core/interfaces/IPancakeV3Pool.sol";
 import "@pancakeswap-v3-core/interfaces/IPancakeV3Factory.sol";
-import "@rivera/strategies/cake/interfaces/libraries/ITickMathLib.sol";
+import "@rivera/strategies/staking/interfaces/libraries/ITickMathLib.sol";
 import "@openzeppelin/utils/math/Math.sol";
 
 import "@rivera/libs/DexV3Calculations.sol";
@@ -21,7 +21,7 @@ import "@rivera/libs/DexV3CalculationStruct.sol";
 ///The addresses used below must also be mainnet addresses.
 
 contract CakeLpStakingV2Test is Test {
-    CakeLpStakingV2 strategy;
+    RiveraConcLpStaking strategy;
     RiveraAutoCompoundingVaultV2Public vault;
 
     //Events
@@ -101,7 +101,7 @@ contract CakeLpStakingV2Test is Test {
         ///@dev Initializing the strategy
         CommonAddresses memory _commonAddresses = CommonAddresses(address(vault), _router, _nonFungiblePositionManager, withdrawFeeDecimals, 
         withdrawFee, feeDecimals, protocolFee, fundManagerFee, partnerFee, partner);
-        CakePoolParams memory cakePoolParams = CakePoolParams(
+        RiveraLpStakingParams memory riveraLpStakingParams = RiveraLpStakingParams(
             _tickLower,
             _tickUpper,
             _stake,
@@ -121,8 +121,8 @@ contract CakeLpStakingV2Test is Test {
             _assettoNativeFeed,
             "pendingCake"
             );
-        strategy = new CakeLpStakingV2();
-        strategy.init(cakePoolParams, _commonAddresses);
+        strategy = new RiveraConcLpStaking();
+        strategy.init(riveraLpStakingParams, _commonAddresses);
         vault.init(IStrategy(address(strategy)));
         vm.stopPrank();
 

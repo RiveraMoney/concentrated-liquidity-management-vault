@@ -3,11 +3,11 @@ pragma solidity ^0.8.4;
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2Whitelisted.sol";
-// import "@rivera/factories/cake/vault/PancakeWhitelistedVaultFactoryV2.sol";
+// import "@rivera/factories/staking/vault/RiveraConcLiqStakingWhiLisVaultFactory.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
-// import '@rivera/factories/cake/PancakeVaultCreationStruct.sol';
+// import '@rivera/factories/staking/RiveraLpStakingVaultCreationStruct.sol';
 
-struct PancakeVaultParams {
+struct RiveraVaultParams {
     address asset;
     uint256 totalTvlCap;
     uint256 approvalDelay;
@@ -42,7 +42,7 @@ interface IRiveraVaultFactoryV2
 
     function allVaults(uint) external view returns (address vault);
     function listAllVaults() external view returns (address[] memory);
-    function createVault(PancakeVaultParams memory createVaultParams) external returns (address vault);
+    function createVault(RiveraVaultParams memory createVaultParams) external returns (address vault);
 
 }
 
@@ -55,7 +55,7 @@ contract DeployWhitelistedVaultV2 is Script {
     IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0x6AB8c9590bD89cBF9DCC90d5efEC4F45D5d219be);
 
 
-    address _cake = 0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82; //Adress of the CAKE ERC20 token on mainnet
+    address _staking = 0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82; //Adress of the CAKE ERC20 token on mainnet
     address _wbnb = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c; //Address of wrapped version of BNB which is the native token of BSC
     address _usdt = 0x55d398326f99059fF775485246999027B3197955;
     address _bnbx=0x1bdd3Cf7F79cfB8EdbB955f20ad99211551BA275;
@@ -97,27 +97,27 @@ contract DeployWhitelistedVaultV2 is Script {
 
 
     //usdt bnb pool
-    address[] _rewardToLp0AddressPath = [_cake, _usdt];
+    address[] _rewardToLp0AddressPath = [_staking, _usdt];
     uint24[] _rewardToLp0FeePath = [2500];
-    address[] _rewardToLp1AddressPath = [_cake, _wbnb];
+    address[] _rewardToLp1AddressPath = [_staking, _wbnb];
     uint24[] _rewardToLp1FeePath = [2500];
     address _stake = 0x36696169C63e42cd08ce11f5deeBbCeBae652050;
     address _assettoNativeFeedUsdtBnbPool=0xD5c40f5144848Bd4EF08a9605d860e727b991513;
     
 
     //BNBx / WBNB pool params
-    address[] _rewardToLp0AddressPathBnbPool = [_cake,_wbnb, _bnbx];
+    address[] _rewardToLp0AddressPathBnbPool = [_staking,_wbnb, _bnbx];
     uint24[] _rewardToLp0FeePathBnbPool = [2500,500];
-    address[] _rewardToLp1AddressPathBnbPool = [_cake, _wbnb];
+    address[] _rewardToLp1AddressPathBnbPool = [_staking, _wbnb];
     uint24[] _rewardToLp1FeePathBnbPool = [2500];
     address _stakeBnbPool=0x77B27c351B13Dc6a8A16Cc1d2E9D5e7F9873702E;//BNBx / WBNB
     address  _assettoNativeFeedBnbPool=address(0);
 
 
     //ETH / ankrETH pool params
-    address[] _rewardToLp0AddressPathEthPool = [_cake,_wbnb, _eth];
+    address[] _rewardToLp0AddressPathEthPool = [_staking,_wbnb, _eth];
     uint24[] _rewardToLp0FeePathEthPool = [2500,2500];
-    address[] _rewardToLp1AddressPathEthPool = [_cake,_wbnb,_eth, _ankrEth];
+    address[] _rewardToLp1AddressPathEthPool = [_staking,_wbnb,_eth, _ankrEth];
     uint24[] _rewardToLp1FeePathEthPool = [2500,2500,500];
     address _stakeEthPool=0x61837a8a78F42dC6cfEd457c4eC1114F5e2d90f4;//BNBx / WBNB
     address  _assettoNativeFeedEthPool=0x63D407F32Aa72E63C7209ce1c2F5dA40b3AaE726;
@@ -203,7 +203,7 @@ contract DeployWhitelistedVaultV2 is Script {
 
         console.log("======================Deploy Vaults====================");
         console.log("create vault of BNBx / WBNB pool");
-        PancakeVaultParams memory createVaultParamsBnbPool= PancakeVaultParams(
+        RiveraVaultParams memory createVaultParamsBnbPool= RiveraVaultParams(
             _wbnb,
             vaultTvlCap,
             stratUpdateDelay,
@@ -233,7 +233,7 @@ contract DeployWhitelistedVaultV2 is Script {
         
         console.log("create vault of ETH / ankrETH  pool");
 
-        PancakeVaultParams memory createVaultParamsEthPool= PancakeVaultParams(
+        RiveraVaultParams memory createVaultParamsEthPool= RiveraVaultParams(
             _eth,
             vaultTvlCap,
             stratUpdateDelay,
@@ -317,7 +317,7 @@ contract DeployWhitelistedVaultV2 is Script {
 
     }
 
-    function _createVault(IRiveraVaultFactoryV2 factory,PancakeVaultParams memory createVaultParams) internal returns (address vaultAddress){
+    function _createVault(IRiveraVaultFactoryV2 factory,RiveraVaultParams memory createVaultParams) internal returns (address vaultAddress){
         
         vaultAddress =factory.createVault(createVaultParams); 
     }

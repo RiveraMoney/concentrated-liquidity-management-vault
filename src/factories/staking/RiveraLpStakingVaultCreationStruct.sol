@@ -1,6 +1,6 @@
 pragma solidity >=0.5.0;
 
-struct PancakeVaultParams {
+struct RiveraVaultParams {
     address asset;
     uint256 totalTvlCap;
     uint256 approvalDelay;
@@ -35,7 +35,7 @@ struct FeeParams {
     address partner;
 }
 
-struct VenusMarketNeutralParams {
+struct LendingMarketNeutralParams {
     uint256 safetyFactor_; 
     address vToken0_; 
     address vToken1_; 

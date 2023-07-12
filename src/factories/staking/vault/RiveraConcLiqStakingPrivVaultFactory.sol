@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 import '@rivera/factories/interfaces/IRiveraVaultFactory.sol';
 import '@rivera/strategies/common/interfaces/IStrategy.sol';
 import '@rivera/vaults/RiveraAutoCompoundingVaultV2Private.sol';
-import '../PancakeStratFactoryV2.sol';
-import '../PancakeVaultCreationStruct.sol';
+import '../RiveraConcLpStakingStratFactory.sol';
+import '../RiveraLpStakingVaultCreationStruct.sol';
 
-contract PancakePrivateVaultFactoryV2 is IRiveraVaultFactory {
+contract RiveraConcLiqStakingPrivVaultFactory is IRiveraVaultFactory {
 
     address[] public allVaults;
 
@@ -26,11 +26,11 @@ contract PancakePrivateVaultFactoryV2 is IRiveraVaultFactory {
         manager = msg.sender;
     }
 
-    function createVault(PancakeVaultParams memory createVaultParams, FeeParams memory feeParams) external returns (address vaultAddress) {
+    function createVault(RiveraVaultParams memory createVaultParams, FeeParams memory feeParams) external returns (address vaultAddress) {
         RiveraAutoCompoundingVaultV2Private vault = new RiveraAutoCompoundingVaultV2Private(createVaultParams.asset, createVaultParams.tokenName, createVaultParams.tokenSymbol, 
         createVaultParams.approvalDelay, createVaultParams.totalTvlCap);
         vaultAddress = address(vault);
-        address stratAddress = PancakeStratFactoryV2(stratFactory).createStrat(createVaultParams, vaultAddress, msg.sender, manager, router, NonfungiblePositionManager, 
+        address stratAddress = RiveraConcLpStakingStratFactory(stratFactory).createStrat(createVaultParams, vaultAddress, msg.sender, manager, router, NonfungiblePositionManager, 
         chef, feeParams);
         vault.transferOwnership(msg.sender);
         vault.init(IStrategy(stratAddress));

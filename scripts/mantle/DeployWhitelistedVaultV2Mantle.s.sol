@@ -3,11 +3,11 @@ pragma solidity ^0.8.4;
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2Whitelisted.sol";
-// import "@rivera/factories/cake/vault/PancakeWhitelistedVaultFactoryV2.sol";
+// import "@rivera/factories/staking/vault/RiveraConcLiqStakingWhiLisVaultFactory.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
-// import '@rivera/factories/cake/PancakeVaultCreationStruct.sol';
+// import '@rivera/factories/staking/RiveraLpStakingVaultCreationStruct.sol';
 
-struct PancakeVaultParams {
+struct RiveraVaultParams {
     address asset;
     uint256 totalTvlCap;
     uint256 approvalDelay;
@@ -55,7 +55,7 @@ interface IRiveraVaultFactoryV2
 
     function allVaults(uint) external view returns (address vault);
     function listAllVaults() external view returns (address[] memory);
-    function createVault(PancakeVaultParams memory createVaultParams,FeeParams memory feePArams) external returns (address vault);
+    function createVault(RiveraVaultParams memory createVaultParams,FeeParams memory feePArams) external returns (address vault);
 
 }
 
@@ -168,7 +168,7 @@ contract DeployWhitelistedVaultV2Mantle is Script {
         console.log("WhiteListed Vault Factory",address(_factory));
         console.log("======================Deploy Vaults====================");
         console.log("create vault of FSX / WBIT pool");
-        PancakeVaultParams memory createVaultParamsFsxPool= PancakeVaultParams(
+        RiveraVaultParams memory createVaultParamsFsxPool= RiveraVaultParams(
             wbit,
             vaultTvlCap,
             stratUpdateDelay,
@@ -223,7 +223,7 @@ contract DeployWhitelistedVaultV2Mantle is Script {
 
     }
 
-    function _createVault(IRiveraVaultFactoryV2 factory,PancakeVaultParams memory createVaultParams,FeeParams memory feeParams) internal returns (address vaultAddress){
+    function _createVault(IRiveraVaultFactoryV2 factory,RiveraVaultParams memory createVaultParams,FeeParams memory feeParams) internal returns (address vaultAddress){
         
         vaultAddress =factory.createVault(createVaultParams,feeParams); 
     }

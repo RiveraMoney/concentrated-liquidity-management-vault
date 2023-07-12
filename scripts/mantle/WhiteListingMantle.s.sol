@@ -5,7 +5,7 @@ import "forge-std/console2.sol";
 import "@rivera/strategies/common/interfaces/IStrategy.sol";
 import "@rivera/vaults/RiveraAutoCompoundingVaultV2Whitelisted.sol";
 import "@rivera/libs/WhitelistFilter.sol";
-import "@rivera/factories/cake/PancakeStratFactoryV2.sol";
+import "@rivera/factories/staking/RiveraConcLpStakingStratFactory.sol";
 
 contract WhiteListingMantle is Script {
     address[] _vaults = [0x9dc06e7729FD4f8dcf33b3b75f64CDeDeBdc4759];

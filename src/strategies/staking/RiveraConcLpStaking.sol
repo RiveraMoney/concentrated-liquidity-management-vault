@@ -19,7 +19,7 @@ import "./interfaces/IV3SwapRouter.sol";
 import "@rivera/libs/DexV3Calculations.sol";
 import "@rivera/libs/DexV3CalculationStruct.sol";
 
-struct CakePoolParams {
+struct RiveraLpStakingParams {
     int24 tickLower;
     int24 tickUpper;
     address stake;
@@ -55,7 +55,7 @@ struct CommonAddresses {
     address partner;
 }
 
-contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializable {
+contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initializable {
     using SafeERC20 for IERC20;
 
     // Tokens used
@@ -104,40 +104,40 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
     // event AssetToNativeFeedChange(address oldFeed, address newFeed);
 
     ///@dev
-    ///@param _cakePoolParams: Has the cake pool specific params
+    ///@param _riveraLpStakingParams: Has the pool specific params
     ///@param _commonAddresses: Has addresses common to all vaults, check Rivera Fee manager for more info
-    function init(CakePoolParams memory _cakePoolParams, CommonAddresses memory _commonAddresses) public virtual initializer {
-        tickMathLib = _cakePoolParams.tickMathLib;
-        sqrtPriceMathLib = _cakePoolParams.sqrtPriceMathLib;
-        liquidityMathLib = _cakePoolParams.liquidityMathLib;
-        safeCastLib = _cakePoolParams.safeCastLib;
-        liquidityAmountsLib = _cakePoolParams.liquidityAmountsLib;
-        fullMathLib = _cakePoolParams.fullMathLib;
-        stake = _cakePoolParams.stake;
-        chef = _cakePoolParams.chef;
-        reward = _cakePoolParams.reward;
-        require(_cakePoolParams.rewardToLp0FeePath.length == _cakePoolParams.rewardToLp0AddressPath.length - 1, "IP");
-        require(_cakePoolParams.rewardToLp1FeePath.length == _cakePoolParams.rewardToLp1AddressPath.length - 1, "IP");
-        rewardToLp0AddressPath = _cakePoolParams.rewardToLp0AddressPath;
-        rewardToLp0FeePath = _cakePoolParams.rewardToLp0FeePath;
-        rewardToLp1AddressPath = _cakePoolParams.rewardToLp1AddressPath;
-        rewardToLp1FeePath = _cakePoolParams.rewardToLp1FeePath;
-        DexV3Calculations.checkTicks(0, 0, _cakePoolParams.tickLower, _cakePoolParams.tickUpper, tickMathLib, stake);
-        tickLower = _cakePoolParams.tickLower;
-        tickUpper = _cakePoolParams.tickUpper;
+    function init(RiveraLpStakingParams memory _riveraLpStakingParams, CommonAddresses memory _commonAddresses) public virtual initializer {
+        tickMathLib = _riveraLpStakingParams.tickMathLib;
+        sqrtPriceMathLib = _riveraLpStakingParams.sqrtPriceMathLib;
+        liquidityMathLib = _riveraLpStakingParams.liquidityMathLib;
+        safeCastLib = _riveraLpStakingParams.safeCastLib;
+        liquidityAmountsLib = _riveraLpStakingParams.liquidityAmountsLib;
+        fullMathLib = _riveraLpStakingParams.fullMathLib;
+        stake = _riveraLpStakingParams.stake;
+        chef = _riveraLpStakingParams.chef;
+        reward = _riveraLpStakingParams.reward;
+        require(_riveraLpStakingParams.rewardToLp0FeePath.length == _riveraLpStakingParams.rewardToLp0AddressPath.length - 1, "IP");
+        require(_riveraLpStakingParams.rewardToLp1FeePath.length == _riveraLpStakingParams.rewardToLp1AddressPath.length - 1, "IP");
+        rewardToLp0AddressPath = _riveraLpStakingParams.rewardToLp0AddressPath;
+        rewardToLp0FeePath = _riveraLpStakingParams.rewardToLp0FeePath;
+        rewardToLp1AddressPath = _riveraLpStakingParams.rewardToLp1AddressPath;
+        rewardToLp1FeePath = _riveraLpStakingParams.rewardToLp1FeePath;
+        DexV3Calculations.checkTicks(0, 0, _riveraLpStakingParams.tickLower, _riveraLpStakingParams.tickUpper, tickMathLib, stake);
+        tickLower = _riveraLpStakingParams.tickLower;
+        tickUpper = _riveraLpStakingParams.tickUpper;
         poolFee = IPancakeV3Pool(stake).fee();
         lpToken0 = IPancakeV3Pool(stake).token0();
         lpToken1 = IPancakeV3Pool(stake).token1();
         (bool success, bytes memory data) = _commonAddresses.vault.call(abi.encodeWithSelector(bytes4(keccak256(bytes('asset()')))));
         require(success, "AF");
         depositToken = abi.decode(data, (address));
-        rewardtoNativeFeed = _cakePoolParams.rewardtoNativeFeed;
-        assettoNativeFeed = _cakePoolParams.assettoNativeFeed;
+        rewardtoNativeFeed = _riveraLpStakingParams.rewardtoNativeFeed;
+        assettoNativeFeed = _riveraLpStakingParams.assettoNativeFeed;
         vault = _commonAddresses.vault;
         router = _commonAddresses.router;
         manager = msg.sender;
         NonfungiblePositionManager = _commonAddresses.NonfungiblePositionManager;
-        pendingRewardsFunctionName=_cakePoolParams.pendingRewardsFunctionName;
+        pendingRewardsFunctionName=_riveraLpStakingParams.pendingRewardsFunctionName;
 
         withdrawFeeDecimals = _commonAddresses.withdrawFeeDecimals;
         withdrawFee = _commonAddresses.withdrawFee;
@@ -197,7 +197,6 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
     }
 
     function _stakeNonFungibleLiquidityPosition() internal whenNotPaused nonReentrant {
-        //Entire LP balance of the strategy contract address is deployed to the farm to earn CAKE
         INonfungiblePositionManager(NonfungiblePositionManager)
             .safeTransferFrom(address(this), chef, tokenID);
     }
@@ -474,7 +473,6 @@ contract CakeLpStakingV2 is FeeManager, ReentrancyGuard, ERC721Holder, Initializ
     }
 
     function rewardsAvailable() public view returns (uint256 rewardsAvbl) {
-        // rewardsAvbl = IMasterChefV3(chef).pendingCake(tokenID);
         string memory signature = StringUtils.concat(
             pendingRewardsFunctionName,
             "(uint256)"
