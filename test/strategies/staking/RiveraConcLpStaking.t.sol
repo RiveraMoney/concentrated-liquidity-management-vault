@@ -20,7 +20,7 @@ import "@rivera/libs/DexV3CalculationStruct.sol";
 ///As there is dependency on Cake swap protocol. Replicating the protocol deployment on separately is difficult. Hence we would test on main net fork of BSC.
 ///The addresses used below must also be mainnet addresses.
 
-contract CakeLpStakingV2Test is Test {
+contract RiveraConcLpStakingTest is Test {
     RiveraConcLpStaking strategy;
     RiveraAutoCompoundingVaultV2Public vault;
 
@@ -46,8 +46,10 @@ contract CakeLpStakingV2Test is Test {
 
     //cakepool params
     bool _isTokenZeroDeposit = true;
-    int24 _tickLower = -61000;
-    int24 _tickUpper = -53000;
+    int24 currentTick = -54707;     //Taken from explorer
+    int24 tickSpacing = 10;
+    int24 _tickLower = ((currentTick - 6932) / tickSpacing) * tickSpacing;      //Tick for price that is half of current price
+    int24 _tickUpper = ((currentTick + 6932) / tickSpacing) * tickSpacing;      //Tick for price that is double of current price
     address _cakeReward = 0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82;
     //libraries
     address _tickMathLib = 0xbA839d70B635A27bB0481731C05c24aDa7Fc9Db9;
@@ -159,15 +161,18 @@ contract CakeLpStakingV2Test is Test {
         emit log_named_address("user from position", user);
         assertEq(address(strategy), user);
 
-        uint256 point5PercentOfDeposit = 1 * depositAmount / 1000;
-        uint256 usdtBal = IERC20(_usdt).balanceOf(address(strategy));
-        emit log_named_uint("After USDT balance", usdtBal);
+        uint256 point5PercentOfDeposit = 3 * depositAmount / 1000;
+        uint256 usdtBal = IERC20(_usdt).balanceOf(address(vault));
+        emit log_named_uint("After vault USDT balance", usdtBal);
         assertLt(usdtBal, point5PercentOfDeposit);
 
-        uint256 point5PercentOfDepositInBnb = DexV3Calculations.convertAmount0ToAmount1(4 * depositAmount / 1000, _stake, _fullMathLib);
+        emit log_named_uint("After strat USDT balance", IERC20(_usdt).balanceOf(address(strategy)));
+        assertEq(IERC20(_usdt).balanceOf(address(strategy)), 0);
+
+        // uint256 point5PercentOfDepositInBnb = DexV3Calculations.convertAmount0ToAmount1(1 * depositAmount / 1000, _stake, _fullMathLib);
         uint256 wbnbBal = IERC20(_wbnb).balanceOf(address(strategy));
-        emit log_named_uint("After WBNB balance", wbnbBal);
-        assertLt(wbnbBal, point5PercentOfDepositInBnb);
+        emit log_named_uint("After strat WBNB balance", wbnbBal);
+        assertEq(wbnbBal, 0);
 
         uint256 stratStakeBalanceAfter = strategy.balanceOf();
         emit log_named_uint("Total assets of strat", stratStakeBalanceAfter);
@@ -311,7 +316,9 @@ contract CakeLpStakingV2Test is Test {
         uint256 withdrawAmount = 996 * depositAmount / 1000;
 
         uint256 vaultDenominaionbal = IERC20(_usdt).balanceOf(address(vault));
-        assertEq(0, vaultDenominaionbal);
+        uint256 point5PercentOfDeposit = 3 * depositAmount / 1000;
+        emit log_named_uint("Vault USDT balance", vaultDenominaionbal);
+        assertLt(vaultDenominaionbal, point5PercentOfDeposit);
 
         uint256 liquidityBalBefore = strategy.liquidityBalance();
 
@@ -326,15 +333,13 @@ contract CakeLpStakingV2Test is Test {
         LiquidityDeltaForAssetAmountParams(_isTokenZeroDeposit, strategy.poolFee(), withdrawAmount, _fullMathLib, _liquidityAmountsLib));
         assertApproxEqRel(liquidityBalBefore - liquidityBalAfter, liqDelta, 25e15);
 
-        uint256 point5PercentOfDeposit = 1 * depositAmount / 1000;
-        uint256 usdtBal = IERC20(_usdt).balanceOf(address(strategy));
-        emit log_named_uint("After USDT balance", usdtBal);
-        assertLt(usdtBal, point5PercentOfDeposit);
-
-        uint256 point5PercentOfDepositInBnb = DexV3Calculations.convertAmount0ToAmount1(4 * depositAmount / 1000, _stake, _fullMathLib);
         uint256 wbnbBal = IERC20(_wbnb).balanceOf(address(strategy));
-        emit log_named_uint("After WBNB balance", wbnbBal);
-        assertLt(wbnbBal, point5PercentOfDepositInBnb);
+        emit log_named_uint("After strat WBNB balance", wbnbBal);
+        assertEq(wbnbBal, 0);
+
+        uint256 usdtBal = IERC20(_usdt).balanceOf(address(strategy));
+        emit log_named_uint("After strat USDT balance", usdtBal);
+        assertLt(usdtBal, withdrawAmount * withdrawFee / withdrawFeeDecimals);
 
     }
 
