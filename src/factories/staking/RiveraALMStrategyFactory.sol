@@ -1,13 +1,13 @@
 pragma solidity ^0.8.0;
 
 import './RiveraLpStakingVaultCreationStruct.sol';
-import '@rivera/strategies/staking/RiveraConcLpStaking.sol';
+import '@rivera/strategies/staking/RiveraConcLpStakingGen.sol';
 
 contract RiveraALMStrategyFactory {
 
     function createStrat(RiveraVaultParams memory createVaultParams, address vaultAddress, address user, address manager, address router, address nonfungiblePositionManager, address chef, 
     FeeParams memory feeParams) external returns (address) {
-        RiveraConcLpStaking strategy = new RiveraConcLpStaking();
+        RiveraConcLpStakingGen strategy = new RiveraConcLpStakingGen();
         strategy.init(RiveraLpStakingParams(createVaultParams.tickLower, createVaultParams.tickUpper, createVaultParams.stake, chef, createVaultParams.rewardToLp0AddressPath[0], createVaultParams.tickMathLib, 
         createVaultParams.sqrtPriceMathLib, createVaultParams.liquidityMathLib, createVaultParams.safeCastLib, createVaultParams.liquidityAmountsLib, createVaultParams.fullMathLib, 
         createVaultParams.rewardToLp0AddressPath, createVaultParams.rewardToLp0FeePath, createVaultParams.rewardToLp1AddressPath, createVaultParams.rewardToLp1FeePath, 

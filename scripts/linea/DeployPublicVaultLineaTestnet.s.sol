@@ -62,15 +62,14 @@ interface IRiveraVaultFactoryV2
 
 
 
-contract DeployPublicVaultV2Mantle is Script {
+contract DeployPublicVaultLineaTestnet is Script {
 
     //factoru
-    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0x1D19576Da105908b0E7AC34Cde6f13e662142F6f);
+    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0x6F1138F2c619C54F87A4Cb95E42d3B275e155650);
 
-    address _fsx=0x6dFB16bc471982f19DB32DEE9b6Fb40Db4503cBF;
-    address wbit=0x8734110e5e1dcF439c7F549db740E546fea82d66;
-    address musdt=0xa9b72cCC9968aFeC98A96239B5AA48d828e8D827;
-    address whaleFsx=0x3EB827c42055450FC3999567556154ABb105F989;
+    address _fsx=0x6dFB16bc471982f19DB32DEE9b6Fb40Db4503cBF;//testnet till we get mainnet address
+    address _usdc=0xf56dc6695cF1f5c364eDEbC7Dc7077ac9B586068;//mainnnet
+    address _weth=0x2C1b868d6596a18e32E61B901E4060C872647b6C;//mainnnet
     uint256 _maxUserBal = 15e24;
     address _user1;
     address _user2;
@@ -87,30 +86,30 @@ contract DeployPublicVaultV2Mantle is Script {
     uint256 _privateKey3;
     uint256 _privateKey4;
 
-    int24 _tickLower = 46600;
-    int24 _tickUpper = 48700;
-    string pendingReward="pendingFusionX";
+    int24 _tickLower =-101020;
+    int24 _tickUpper =-100300;
+    string pendingReward="pendingCake";
     // address _reward = 0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82;
     // //libraries
-     address _tickMathLib =0x271d7594985F8CE8CB41c99761C5f42956ff6e5E;
-    address _sqrtPriceMathLib = 0x69e0778b9Ba7e795329Ec8971B1FE46fA783daF6;
-    address _liquidityMathLib = 0xE84a814B835E9F54e528Fb96205120E3bdA3f7d0;
-    address _safeCastLib = 0x070f86Ba8Af424e59e9FEA8509896BBD0b8dD0c5;
-    address _liquidityAmountsLib =0x00D4FDC04e86269cE7F4b1AcD985d5De0eA1C16d;
-    address _fullMathLib = 0x46b0D5C30537A800B12AF7a22D924F1636879965;
+     address _tickMathLib =0xA9C3e24d94ef6003fB6064D3a7cdd40F87bA44de;
+    address _sqrtPriceMathLib = 0x25ADF247aC836D35be924f4b701A0787A30d46a9;
+    address _liquidityMathLib = 0xe931672196AB22B0c161b402B516f9eC33bD684c;
+    address _safeCastLib = 0xA7B88e482d3C9d17A1b83bc3FbeB4DF72cB20478;
+    address _liquidityAmountsLib =0x74C5E75798b33D38abeE64f7EC63698B7e0a10f1;
+    address _fullMathLib = 0x672058B73396C78556fdddEc090202f066B98D71;
 
     //usdt bnb pool
-    address _stake = 0x30F63e60Ab33B05f3baFf97E5A35010De6F4Ea9D;
+    address _stake = 0xBd2d94d09AbaDc5084f278bd639Fbc9Af6A6bea0;//mainnet
 
 
-    //FSX / WBIT pool params
-    address[] rewardToLp0AddressPath = [_fsx,musdt,wbit];
+    //FSX / _usdc pool params
+    address[] rewardToLp0AddressPath = [_fsx,_weth,_usdc];
     uint24[] rewardToLp0FeePath = [2500,500];
-    address[] rewardToLp1AddressPath = [_fsx, wbit];
+    address[] rewardToLp1AddressPath = [_fsx, _usdc];
     uint24[] rewardToLp1FeePath = [2500];
     address  assettoNativeFeed=address(0);
     address rewardtoNativeFeed=address(0);
-    uint256 depositAmount1=2e18;///vault 1 deposit amount
+    // uint256 depositAmount1=5e6;///vault 1 deposit amount
     uint256 _withdrawFeeDecimals=100;
     uint256 _withdrawFee=1;
 
@@ -173,15 +172,15 @@ contract DeployPublicVaultV2Mantle is Script {
     function run() public {
 
         vm.startBroadcast(_privateKey2);
-        console.log("WhiteListed Vault Factory",address(_factory));
+        console.log("Public Vault Factory",address(_factory));
         console.log("======================Deploy Vaults====================");
-        console.log("create vault of FSX / WBIT pool");
+        console.log("create vault of ETH / USDC pool");
         RiveraVaultParams memory createVaultParamsFsxPool= RiveraVaultParams(
-            wbit,
+            _usdc,
             vaultTvlCap,
             stratUpdateDelay,
-            "Riv-FSX-WBIT-YT-X",
-            "Riv-FSX-WBIT-YT-X",
+            "Riv-ETH-USDC-YT-X",
+            "Riv-ETH-USDC-YT-X",
             _tickLower,
             _tickUpper,
             _stake,
@@ -209,20 +208,18 @@ contract DeployPublicVaultV2Mantle is Script {
             _partnerFee,
             _partner
         );
-        address vaultFsxPool = _createVault(_factory,createVaultParamsFsxPool,feeParams);
-        console.log("Vault FSX / WBIT ",vaultFsxPool);
+        address vaultPool = _createVault(_factory,createVaultParamsFsxPool,feeParams);
+        console.log("Vault FSX / _usdc ",vaultPool);
         console.log("======================"); 
         vm.stopBroadcast(); 
         address[] memory vault=_factory.listAllVaults();
         console.log("all vaults",vault.length);
         console.log("======================Deposit in Vault====================");
         vm.startBroadcast(_privateKey3);
-        IERC20(wbit).approve(vaultFsxPool, depositAmount1);
-        RiveraAutoCompoundingVaultV2Public(vaultFsxPool).deposit(depositAmount1, _user3);
-        vm.stopBroadcast();
-        vm.startBroadcast(_privateKey4);
-        IERC20(wbit).approve(vaultFsxPool, depositAmount1);
-        RiveraAutoCompoundingVaultV2Public(vaultFsxPool).deposit(depositAmount1, _user4);
+        uint256 depositAmount1=IERC20(_usdc).balanceOf(_user3)/10;///vault 1 deposit amount
+        // uint256 depositAmount1=15e6;///vault 1 deposit amount
+        IERC20(_usdc).approve(vaultPool, depositAmount1);
+        RiveraAutoCompoundingVaultV2Public(vaultPool).deposit(depositAmount1, _user3);
         vm.stopBroadcast();
 
     }

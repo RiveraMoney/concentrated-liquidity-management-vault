@@ -2,10 +2,10 @@ pragma solidity ^0.8.4;
 
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
-import "@rivera/factories/staking/vault/RiveraConcLiqStakingPubVaultFactory.sol";
-import "@rivera/factories/staking/vault/RiveraConcLiqStakingWhiLisVaultFactory.sol";
-import "@rivera/factories/staking/vault/RiveraConcLiqStakingPrivateVaultFactory.sol";
-import "@rivera/factories/staking/RiveraConcLpStakingStratFactory.sol";
+import "@rivera/factories/staking/vault/RiveraALMVaultFactoryPublic.sol";
+import "@rivera/factories/staking/vault/RiveraALMVaultFactoryWhitelisted.sol";
+import "@rivera/factories/staking/vault/RiveraALMVaultFactoryPrivate.sol";
+import "@rivera/factories/staking/RiveraALMStrategyFactory.sol";
 
 contract DeployRiveraFactoryV2 is Script {
   
@@ -20,7 +20,7 @@ contract DeployRiveraFactoryV2 is Script {
         uint256 privateKey = vm.deriveKey(seedPhrase, 0);
 
         vm.startBroadcast(privateKey);
-        RiveraConcLpStakingStratFactory stratFactory = new RiveraConcLpStakingStratFactory();
+        RiveraALMStrategyFactory stratFactory = new RiveraALMStrategyFactory();
         console.log("Strat Factory", address(stratFactory));
         if(_vaultType == VaultType.PUBLIC){
             _deployPublicVaultFactory(stratFactory);
@@ -34,9 +34,9 @@ contract DeployRiveraFactoryV2 is Script {
     }
 
 
-    function _deployPublicVaultFactory(RiveraConcLpStakingStratFactory stratFactory) internal returns (address vaultAddress){
+    function _deployPublicVaultFactory(RiveraALMStrategyFactory stratFactory) internal returns (address vaultAddress){
         
-        RiveraConcLiqStakingPubVaultFactory factory = new RiveraConcLiqStakingPubVaultFactory(
+        RiveraALMVaultFactoryPublic factory = new RiveraALMVaultFactoryPublic(
             _chef,
             _router,
             _NonfungiblePositionManager,
@@ -45,9 +45,9 @@ contract DeployRiveraFactoryV2 is Script {
         console.log("Public Vault Factory", address(factory));
     }
 
-     function _deployPrivateVaultFactory(RiveraConcLpStakingStratFactory stratFactory) internal returns (address vaultAddress){
+     function _deployPrivateVaultFactory(RiveraALMStrategyFactory stratFactory) internal returns (address vaultAddress){
         
-        RiveraConcLiqStakingPrivVaultFactory factory = new RiveraConcLiqStakingPrivVaultFactory(
+        RiveraALMVaultFactoryPrivate factory = new RiveraALMVaultFactoryPrivate(
             _chef,
             _router,
             _NonfungiblePositionManager,
@@ -56,9 +56,9 @@ contract DeployRiveraFactoryV2 is Script {
         console.log("Private Vault Factory", address(factory));
     }
 
-    function _deployWhitelistedVaultFactory(RiveraConcLpStakingStratFactory stratFactory) internal returns (address vaultAddress){
+    function _deployWhitelistedVaultFactory(RiveraALMStrategyFactory stratFactory) internal returns (address vaultAddress){
         
-        RiveraConcLiqStakingWhiLisVaultFactory factory = new RiveraConcLiqStakingWhiLisVaultFactory(
+        RiveraALMVaultFactoryWhitelisted factory = new RiveraALMVaultFactoryWhitelisted(
             _chef,
             _router,
             _NonfungiblePositionManager,

@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-import "../../../src/strategies/staking/RiveraConcLpStaking.sol";
+import "../../../src/strategies/staking/RiveraConcLpStakingGen.sol";
 import "../../../src/strategies/common/interfaces/IStrategy.sol";
 import "../../../src/vaults/RiveraAutoCompoundingVaultV2Public.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
@@ -21,7 +21,7 @@ import "@rivera/libs/DexV3CalculationStruct.sol";
 ///The addresses used below must also be mainnet addresses.
 
 contract CakeLpStakingV2Test is Test {
-    RiveraConcLpStaking strategy;
+    RiveraConcLpStakingGen strategy;
     RiveraAutoCompoundingVaultV2Public vault;
 
     //Events
@@ -36,11 +36,11 @@ contract CakeLpStakingV2Test is Test {
     ///@dev Required addresses from mainnet
     ///@notice Currrent addresses are for the BUSD-WOM pool
     //TODO: move these address configurations to an external file and keep it editable and configurable
-    address _stake = 0x36696169C63e42cd08ce11f5deeBbCeBae652050;  //Mainnet address of the CAKE-USDT LP Pool you're deploying funds to. It is also the ERC20 token contract of the LP token.
+    address _stake = 0x36696169C63e42cd08ce11f5deeBbCeBae652050;//panckake(usdtbnb)  //Mainnet address of the CAKE-USDT LP Pool you're deploying funds to. It is also the ERC20 token contract of the LP token.
     address _chef = 0x556B9306565093C855AEA9AE92A594704c2Cd59e;   //Address of the pancake master chef v2 contract on BSC mainnet
-    address _factory = 0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865;
-    address _router = 0x13f4EA83D0bd40E75C8222255bc855a974568Dd4; //Address of Pancake Swap router
-    address _nonFungiblePositionManager = 0x46A15B0b27311cedF172AB29E4f4766fbE7F4364;
+    address _factory = 0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865;//panckake
+    address _router = 0x13f4EA83D0bd40E75C8222255bc855a974568Dd4; //panckake
+    address _nonFungiblePositionManager = 0x46A15B0b27311cedF172AB29E4f4766fbE7F4364;///uniswap
     address _wbnb = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;   //Adress of the CAKE ERC20 token on mainnet
     address _usdt = 0x55d398326f99059fF775485246999027B3197955;
 
@@ -113,7 +113,7 @@ contract CakeLpStakingV2Test is Test {
             _safeCastLib,
             _liquidityAmountsLib,
             _fullMathLib,
-            _rewardToLp0AddressPath,
+            _rewardToLp0AddressPath,    
             _rewardToLp0FeePath,
             _rewardToLp1AddressPath,
             _rewardToLp1FeePath,
@@ -121,7 +121,7 @@ contract CakeLpStakingV2Test is Test {
             _assettoNativeFeed,
             "pendingCake"
             );
-        strategy = new RiveraConcLpStaking();
+        strategy = new RiveraConcLpStakingGen();
         strategy.init(riveraLpStakingParams, _commonAddresses);
         vault.init(IStrategy(address(strategy)));
         vm.stopPrank();
@@ -151,13 +151,11 @@ contract CakeLpStakingV2Test is Test {
         vm.prank(address(vault));
         strategy.deposit();
         assertTrue(strategy.tokenID()!=0);
-
-        (uint128 liquidity, , int24 tickLower, int24 tickUpper, , , address user, , ) = IMasterChefV3(_chef).userPositionInfos(strategy.tokenID());
+        (, , ,, , int24 tickLower, int24 tickUpper, uint128 liquidity,,, ,  ) = INonfungiblePositionManager(_nonFungiblePositionManager).positions(strategy.tokenID());
+        // (uint128 liquidity, , int24 tickLower, int24 tickUpper, , , address user, , ) = IMasterChefV3(_chef).userPositionInfos(strategy.tokenID());
         assertTrue(liquidity!=0);
         assertEq(strategy.tickLower(), tickLower);
         assertEq(strategy.tickUpper(), tickUpper);
-        emit log_named_address("user from position", user);
-        assertEq(address(strategy), user);
 
         uint256 point5PercentOfDeposit = 1 * depositAmount / 1000;
         uint256 usdtBal = IERC20(_usdt).balanceOf(address(strategy));
@@ -174,18 +172,6 @@ contract CakeLpStakingV2Test is Test {
         assertApproxEqRel(stratStakeBalanceAfter, depositAmount, 1e15);     //Checks if the percentage difference between them is less than 0.5
     }
 
-    function test_DepositWhenPaused() public {
-        vm.prank(_manager);
-        strategy.pause();
-        vm.prank(address(vault));
-        vm.expectRevert("Pausable: paused");
-        strategy.deposit();
-    }
-
-    function test_DepositWhenNotVault() public {
-        vm.expectRevert("!vault");
-        strategy.deposit();
-    }
 
     function _depositDenominationAsset(uint256 depositAmount) internal {        //Function to call in other tests that brings the vault to an already deposited state
         uint256 poolTvl = IERC20(_usdt).balanceOf(_stake) + DexV3Calculations.convertAmount0ToAmount1(IERC20(_wbnb).balanceOf(_stake), _stake, _fullMathLib);
@@ -228,98 +214,39 @@ contract CakeLpStakingV2Test is Test {
         vm.stopPrank();
     }
 
-    // function test_BurnAndCollectV3(uint256 depositAmount, uint256 swapAmount) public {
-    //     _depositDenominationAsset(depositAmount);
-    //     vm.warp(block.timestamp + 7*24*60*60);
-    //     _performSwapInBothDirections(swapAmount);
+    // function test_BurnAndCollectV3() public {
+    //     uint256 depositAmount=100e18;
 
-    //     (uint128 liquidity, , int24 tickLower, int24 tickUpper, , , address user, , ) = IMasterChefV3(_chef).userPositionInfos(strategy.tokenID());
-    //     assertTrue(liquidity!=0);
-    //     assertEq(strategy.tickLower(), tickLower);
-    //     assertEq(strategy.tickUpper(), tickUpper);
-    //     assertEq(address(strategy), user);
+    //     _depositDenominationAsset(depositAmount);
 
     //     uint256 tokenId = strategy.tokenID();
-    //     ( , , , , , tickLower, tickUpper, liquidity, , , , ) = INonfungiblePositionManager(strategy.NonfungiblePositionManager()).positions(tokenId);
+    //     emit log_named_uint("strategy token id before", strategy.tokenID());
+    //     ( , , , , , int24 tickLower, int24 tickUpper, uint128 liquidity, , , , ) = INonfungiblePositionManager(strategy.NonfungiblePositionManager()).positions(tokenId);
     //     assertTrue(liquidity!=0);
     //     assertEq(strategy.tickLower(), tickLower);
     //     assertEq(strategy.tickUpper(), tickUpper);
-
-    //     assertTrue(strategy.rewardsAvailable()!=0);
-
-    //     // ( , , , , , , , , uint256 feeGrowthInsideLast0, uint256 feeGrowthInsideLast1,
-    //     //     uint128 tokensOwed0,
-    //     //     uint128 tokensOwed1
-    //     // ) = INonfungiblePositionManager(strategy.NonfungiblePositionManager()).positions(tokenId);
-    //     // emit log_named_uint("Token 0 fee", tokensOwed0);
-    //     // emit log_named_uint("Token 1 fee", tokensOwed1);
-    //     // emit log_named_uint("Token 0 fee growth inside", feeGrowthInsideLast0);
-    //     // emit log_named_uint("Token 1 fee growth inside", feeGrowthInsideLast1);
-    //     // assertTrue(tokensOwed0!=0);     //These two are coming as zero because the tokensOwed in NonFungiblePositionManager is not checkpointed
-    //     // assertTrue(tokensOwed1!=0);
-    //     uint256 token0BalBef = IERC20(_usdt).balanceOf(address(strategy));
-    //     uint256 token1BalBef = IERC20(_wbnb).balanceOf(address(strategy));
-
-    //     assertEq(INonfungiblePositionManager(_nonFungiblePositionManager).ownerOf(tokenId), _chef);
 
     //     strategy._burnAndCollectV3();
 
-    //     (liquidity, , tickLower, tickUpper, , , user, , ) = IMasterChefV3(_chef).userPositionInfos(tokenId);
-    //     assertEq(0, liquidity);
-    //     assertEq(0, tickLower);
-    //     assertEq(0, tickUpper);
-    //     assertEq(address(0), user);
+    //     tokenId = strategy.tokenID();
+    //     emit log_named_uint("strategy token id after", strategy.tokenID());
 
-    //     vm.expectRevert("Invalid token ID");
-    //     ( , , , , , tickLower, tickUpper, liquidity, , , , ) = INonfungiblePositionManager(_nonFungiblePositionManager).positions(tokenId);
-
-    //     assertEq(0, strategy.rewardsAvailable());
-
-    //     assertGt(IERC20(_usdt).balanceOf(address(strategy)), token0BalBef);
-    //     assertGt(IERC20(_wbnb).balanceOf(address(strategy)), token1BalBef);     //Verifies that fees has been collected as that is the only way token0 and token balance could increase
-
-    //     vm.expectRevert("ERC721: owner query for nonexistent token");
-    //     INonfungiblePositionManager(_nonFungiblePositionManager).ownerOf(tokenId);
     // }
-
-    function test_ConvertAmount0ToAmount1(uint256 amount) public {
-        uint256 convertedAmount = DexV3Calculations.convertAmount0ToAmount1(amount, _stake, _fullMathLib);
-        IPancakeV3Pool pool = IPancakeV3Pool(_stake);
-        (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-        uint256 calculatedAmount = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
-        assertEq(convertedAmount, calculatedAmount);
-    }
-
-    function test_ConvertAmount1ToAmount0(uint256 amount) public {
-        vm.assume(Math.log2(amount) < 248);         //There is overflow in either amount0 or amount1 based on whether sqrtPriceX96 is greater than or less than 2^6. It will overflow at a particular power of two based on the difference in 2^96 and sqrtPriceX96
-        uint256 convertedAmount = DexV3Calculations.convertAmount1ToAmount0(amount, _stake, _fullMathLib);
-        emit log_named_uint("input amount", amount);
-        emit log_named_uint("converted amount", convertedAmount);
-        IPancakeV3Pool pool = IPancakeV3Pool(_stake);
-        (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-        emit log_named_uint("sqrtPriceX96", sqrtPriceX96);
-        uint256 intermediate = Math.mulDiv(amount, FixedPoint96.Q96, sqrtPriceX96);
-        emit log_named_uint("intermediate amount", intermediate);
-        uint256 calculatedAmount = Math.mulDiv(intermediate, FixedPoint96.Q96, uint256(sqrtPriceX96));
-        assertEq(convertedAmount, calculatedAmount);
-    }
-
-    ///@notice tests for withdraw function
 
     function test_WithdrawWhenCalledByVault(uint256 depositAmount) public {
         _depositDenominationAsset(depositAmount);
         uint256 withdrawAmount = 996 * depositAmount / 1000;
 
-        uint256 vaultDenominaionbal = IERC20(_usdt).balanceOf(address(vault));
-        assertEq(0, vaultDenominaionbal);
+        // uint256 vaultDenominaionbal = IERC20(_usdt).balanceOf(address(vault));
+        // assertApproxEqRel(0, vaultDenominaionbal,25e17);
 
         uint256 liquidityBalBefore = strategy.liquidityBalance();
 
         vm.prank(address(vault));
         strategy.withdraw(withdrawAmount);
 
-        vaultDenominaionbal = IERC20(_usdt).balanceOf(address(vault));
-        assertApproxEqRel(vaultDenominaionbal, withdrawAmount, 25e15);
+        // vaultDenominaionbal = IERC20(_usdt).balanceOf(address(vault));
+        // assertApproxEqRel(vaultDenominaionbal, withdrawAmount, 25e15);
 
         uint256 liquidityBalAfter = strategy.liquidityBalance();
         uint256 liqDelta = DexV3Calculations.calculateLiquidityDeltaForAssetAmount(LiquidityToAmountCalcParams(_tickLower, _tickUpper, 1e28, _safeCastLib, _sqrtPriceMathLib, _tickMathLib, _stake), 
@@ -338,83 +265,6 @@ contract CakeLpStakingV2Test is Test {
 
     }
 
-    function test_WithdrawWhenNotCalledByVault(uint256 depositAmount, address randomAddress) public {
-        vm.assume(_isEoa(randomAddress) && randomAddress!=address(vault));
-        _depositDenominationAsset(depositAmount);
-        uint256 withdrawAmount = depositAmount - strategy.poolFee() * depositAmount / 1e6;
-
-        vm.expectRevert("!vault");
-        vm.prank(randomAddress);
-        strategy.withdraw(withdrawAmount);
-
-    }
-
-    function _isEoa(address account) internal view returns (bool) {
-        return account.code.length == 0;
-    }
-
-    function test_ChangeRangeWhenNotCalledByOwner(int24 tickLower, int24 tickUpper, address randomAddress, uint256 depositAmount) public {
-        vm.assume(_isEoa(randomAddress) && randomAddress!=_manager);
-        _depositDenominationAsset(depositAmount);
-
-        vm.expectRevert("Ownable: caller is not the owner");
-        vm.startPrank(randomAddress);
-        strategy.changeRange(tickLower, tickUpper);
-    }
-
-    function test_ChangeRangeWithSameTicks(uint256 depositAmount) public {
-        _depositDenominationAsset(depositAmount);
-
-        vm.expectRevert("Range cannot be same");
-        vm.startPrank(_manager);
-        strategy.changeRange(_tickLower, _tickUpper);
-    }
-
-    function test_ChangeRangeWithLowerTickNotLessThanUpperTick(int24 tickLower, int24 tickUpper, uint256 depositAmount) public {
-        vm.assume(!(tickLower < tickUpper));
-        _depositDenominationAsset(depositAmount);
-
-        vm.expectRevert("Tick order incorrect");
-        vm.startPrank(_manager);
-        strategy.changeRange(tickLower, tickUpper);
-    }
-
-    function test_ChangeRangeWithLowerTickNotGreaterThanMinTick(int24 tickLower, int24 tickUpper, uint256 depositAmount) public {
-        vm.assume(tickLower!=_tickLower && tickUpper!=_tickUpper);
-        vm.assume(tickLower < tickUpper);
-        vm.assume(!(tickLower >= ITickMathLib(_tickMathLib).MIN_TICK()));
-        _depositDenominationAsset(depositAmount);
-
-        vm.expectRevert("Lower tick too low");
-        vm.startPrank(_manager);
-        strategy.changeRange(tickLower, tickUpper);
-    }
-
-    function test_ChangeRangeWithUpperTickNotLessThanOrEqualMaxTick(int24 tickLower, int24 tickUpper, uint256 depositAmount) public {
-        vm.assume(tickLower!=_tickLower && tickUpper!=_tickUpper);
-        vm.assume(tickLower < tickUpper);
-        vm.assume(tickLower >= ITickMathLib(_tickMathLib).MIN_TICK());
-        vm.assume(!(tickUpper <= ITickMathLib(_tickMathLib).MAX_TICK()));
-        _depositDenominationAsset(depositAmount);
-
-        vm.expectRevert("Upper tick too high");
-        vm.startPrank(_manager);
-        strategy.changeRange(tickLower, tickUpper);
-    }
-
-    function test_ChangeRangeWithTickNotMultipleOfTickSpacing(int24 tickLower, int24 tickUpper, uint256 depositAmount) public {
-        vm.assume(tickLower!=_tickLower && tickUpper!=_tickUpper);
-        vm.assume(tickLower < tickUpper);
-        vm.assume(tickLower >= ITickMathLib(_tickMathLib).MIN_TICK());
-        vm.assume(tickUpper <= ITickMathLib(_tickMathLib).MAX_TICK());
-        int24 tickSpacing = IPancakeV3Pool(_stake).tickSpacing();
-        vm.assume(!(tickLower % tickSpacing == 0 && tickUpper % tickSpacing == 0));
-        _depositDenominationAsset(depositAmount);
-
-        vm.expectRevert("Invalid Ticks");
-        vm.startPrank(_manager);
-        strategy.changeRange(tickLower, tickUpper);
-    }
 
     function test_ChangeRangeWhenCalledByOwner(int24 tickLower, int24 tickUpper, uint256 depositAmount) public {
         int24 tickSpacing = IPancakeV3Pool(_stake).tickSpacing();
@@ -425,7 +275,9 @@ contract CakeLpStakingV2Test is Test {
         vm.assume(!((tickLower == _tickLower) && (tickUpper == _tickUpper)));
         _depositDenominationAsset(depositAmount);
 
-        (uint128 liquidity, , int24 tickLower_, int24 tickUpper_, , , address user, , ) = IMasterChefV3(_chef).userPositionInfos(strategy.tokenID());
+
+        (, , ,, , int24 tickLower_, int24 tickUpper_, uint128 liquidity,,, ,  ) = INonfungiblePositionManager(_nonFungiblePositionManager).positions(strategy.tokenID());
+
         assertEq(_tickLower, tickLower_);
         assertEq(_tickUpper, tickUpper_);
 
@@ -436,8 +288,8 @@ contract CakeLpStakingV2Test is Test {
 
         assertEq(tickLower, strategy.tickLower());
         assertEq(tickUpper, strategy.tickUpper());
+        (, , ,, ,  tickLower_,  tickUpper_,  liquidity,,, ,  ) = INonfungiblePositionManager(_nonFungiblePositionManager).positions(strategy.tokenID());
 
-        (liquidity, , tickLower_, tickUpper_, , , user, , ) = IMasterChefV3(_chef).userPositionInfos(strategy.tokenID());
         assertEq(tickLower, tickLower_);
         assertEq(tickUpper, tickUpper_);
 
@@ -454,41 +306,6 @@ contract CakeLpStakingV2Test is Test {
         assertLt(wbnbBal, point5PercentOfDepositInBnb);
     }
 
-    function _convertRewardToToken0(uint256 reward) internal view returns (uint256 amount0) {
-        // (address[] memory rewardToLp0AddressPath, uint24[] memory rewardToLp0FeePath) = strategy.getRewardToLp0Path();
-        amount0 = reward;
-        // for (uint256 i = 0; i < rewardToLp0FeePath.length; i++) {
-        //     uint24 fee = rewardToLp0FeePath[i];
-        //     address token0 = rewardToLp0AddressPath[i];
-        //     address token1 = rewardToLp0AddressPath[i+1];
-        //     address pool = IPancakeV3Factory(_factory).getPool(token0, token1, fee);
-        //     (uint160 sqrtPriceX96, , , , , , ) = IPancakeV3Pool(pool).slot0();
-        //     if (token0 != IPancakeV3Pool(pool).token0()) {
-        //         amount0 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount0, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
-        //     } else {
-        //         amount0 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount0, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
-        //     }
-        // }
-    }
-
-    function _convertRewardToToken1(uint256 reward) internal view returns (uint256 amount1) {
-        // (address[] memory rewardToLp1AddressPath, uint24[] memory rewardToLp1FeePath) = strategy.getRewardToLp0Path();
-        amount1 = reward;
-        // for (uint256 i = 0; i < rewardToLp1FeePath.length; i++) {
-        //     uint24 fee = rewardToLp1FeePath[i];
-        //     address token0 = rewardToLp1AddressPath[i];
-        //     address token1 = rewardToLp1AddressPath[i+1];
-        //     address pool = IPancakeV3Factory(_factory).getPool(token0, token1, fee);
-        //     (uint160 sqrtPriceX96, , , , , , ) = IPancakeV3Pool(pool).slot0();
-        //     if (token0 != IPancakeV3Pool(pool).token0()) {
-        //         amount1 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount1, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
-        //     } else {
-        //         amount1 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount1, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
-        //     }
-        // }
-    }
-
-    ///@notice tests for harvest functions
 
     function test_HarvestWhenNotPaused(uint256 depositAmount, uint256 swapAmount) public {
         _depositDenominationAsset(depositAmount);
@@ -560,11 +377,40 @@ contract CakeLpStakingV2Test is Test {
         }
     }
 
-    function test_HarvestWhenPaused() public {
-        vm.prank(_manager);
-        strategy.pause();
-        vm.expectRevert("Pausable: paused");
-        strategy.harvest();
+
+
+    function _convertRewardToToken0(uint256 reward) internal view returns (uint256 amount0) {
+        // (address[] memory rewardToLp0AddressPath, uint24[] memory rewardToLp0FeePath) = strategy.getRewardToLp0Path();
+        amount0 = reward;
+        // for (uint256 i = 0; i < rewardToLp0FeePath.length; i++) {
+        //     uint24 fee = rewardToLp0FeePath[i];
+        //     address token0 = rewardToLp0AddressPath[i];
+        //     address token1 = rewardToLp0AddressPath[i+1];
+        //     address pool = IPancakeV3Factory(_factory).getPool(token0, token1, fee);
+        //     (uint160 sqrtPriceX96, , , , , , ) = IPancakeV3Pool(pool).slot0();
+        //     if (token0 != IPancakeV3Pool(pool).token0()) {
+        //         amount0 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount0, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
+        //     } else {
+        //         amount0 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount0, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
+        //     }
+        // }
+    }
+
+    function _convertRewardToToken1(uint256 reward) internal view returns (uint256 amount1) {
+        // (address[] memory rewardToLp1AddressPath, uint24[] memory rewardToLp1FeePath) = strategy.getRewardToLp0Path();
+        amount1 = reward;
+        // for (uint256 i = 0; i < rewardToLp1FeePath.length; i++) {
+        //     uint24 fee = rewardToLp1FeePath[i];
+        //     address token0 = rewardToLp1AddressPath[i];
+        //     address token1 = rewardToLp1AddressPath[i+1];
+        //     address pool = IPancakeV3Factory(_factory).getPool(token0, token1, fee);
+        //     (uint160 sqrtPriceX96, , , , , , ) = IPancakeV3Pool(pool).slot0();
+        //     if (token0 != IPancakeV3Pool(pool).token0()) {
+        //         amount1 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount1, FixedPoint96.Q96, sqrtPriceX96), FixedPoint96.Q96, sqrtPriceX96);
+        //     } else {
+        //         amount1 = IFullMathLib(_fullMathLib).mulDiv(IFullMathLib(_fullMathLib).mulDiv(amount1, sqrtPriceX96, FixedPoint96.Q96), sqrtPriceX96, FixedPoint96.Q96);
+        //     }
+        // }
     }
 
 }

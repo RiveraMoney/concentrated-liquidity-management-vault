@@ -7,12 +7,11 @@ import "@rivera/factories/staking/vault/RiveraALMVaultFactoryWhitelisted.sol";
 import "@rivera/factories/staking/vault/RiveraALMVaultFactoryPrivate.sol";
 import "@rivera/factories/staking/RiveraALMStrategyFactory.sol";
 
-contract DeployRiveraFactoryV2Mantle is Script {
+contract DeployRiveraFactoryLineaTestnet is Script {
   
-    // address _chef = 0x9316938Eaa09E71CBB1Bf713212A42beCBa2998F;//HasFarm
-    address _chef = address(0);//NoFarm
-    address _router = 0xE3a68317a2F1c41E5B2efBCe2951088efB0Cf524;
-    address _NonfungiblePositionManager = 0x94705da51466F3Bb1E8c1591D71C09c9760f5F59;
+    address _chef = address(0);
+    address _router = 0x6aa397CAB00a2A40025Dbf839a83f16D5EC7c1eB;
+    address _NonfungiblePositionManager = 0xBa2e5317CC21CF591d3908F703a855547cDc849f;
     VaultType _vaultType = VaultType.PUBLIC;
 
     function run() public {
