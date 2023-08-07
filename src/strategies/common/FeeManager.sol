@@ -4,12 +4,12 @@ import "./AbstractStrategyV2.sol";
 
 contract FeeManager is AbstractStrategyV2 {
 
-    uint256 withdrawFeeDecimals;
-    uint256 withdrawFee;
+    uint256 public withdrawFeeDecimals;
+    uint256 public withdrawFee;
 
-    uint256 feeDecimals;
-    uint256 protocolFee;
-    uint256 fundManagerFee;
-    uint256 partnerFee;
-    address partner;
+    uint256 public feeDecimals;
+    uint256 public protocolFee;
+    uint256 public fundManagerFee;
+    uint256 public partnerFee;
+    address public partner;
 }
