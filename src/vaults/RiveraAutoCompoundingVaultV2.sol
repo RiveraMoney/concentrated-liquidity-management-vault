@@ -48,6 +48,7 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
     event UpgradeStrat(address implementation);
     event TvlCapChange(address indexed onwer_, uint256 oldTvlCap, uint256 newTvlCap);
     event UserTvlCapChange(address indexed onwer_, address indexed user, uint256 oldTvlCap, uint256 newTvlCap);
+    event SharePriceChange(uint256 sharePriceX96, uint256 unutilizedAssetBal);
 
     /*
      * @dev Sets the value of {token} to the token that the vault will
@@ -135,6 +136,8 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         _earn();
         _mint(receiver, shares);
 
+        uint256 scaler = 2**96;
+        emit SharePriceChange(assets * scaler / shares, IERC20(asset()).balanceOf(address(this)));
         emit Deposit(caller, receiver, assets, shares);
     }
 
@@ -174,6 +177,8 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
 
         asset_.safeTransfer(receiver, assets);
 
+        uint256 scaler = 2**96;
+        emit SharePriceChange(assets * scaler / shares, IERC20(asset()).balanceOf(address(this)));
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
 
