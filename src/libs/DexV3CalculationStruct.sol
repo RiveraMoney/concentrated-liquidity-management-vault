@@ -23,7 +23,6 @@ struct ChangeInAmountsForNewRatioParams {
     uint256 currAmount0Bal;
     uint256 currAmount1Bal;
     address fullMathLib;
-    address liquidityAmountsLib;
 }
 
 struct UnclaimedLpFeesParams {
