@@ -14,6 +14,7 @@ import "@rivera/strategies/staking/interfaces/libraries/IFullMathLib.sol";
 
 import "@rivera/libs/DexV3CalculationStruct.sol";
 
+import "forge-std/console2.sol";
 
 library DexV3Calculations {
 
@@ -94,38 +95,43 @@ library DexV3Calculations {
 
     function changeInAmountsToNewRangeRatio(LiquidityToAmountCalcParams calldata liquidityToAmountCalcParams, ChangeInAmountsForNewRatioParams calldata changeInAmountsForNewRatioParams) public view returns (uint256 x, uint256 y) {
         require(!(changeInAmountsForNewRatioParams.currAmount0Bal==0 && changeInAmountsForNewRatioParams.currAmount1Bal==0), "NA");
-        (uint256 amount0, uint256 amount1) = liquidityToAmounts(liquidityToAmountCalcParams);
-        if (amount0 == 0) {
+        IPancakeV3Pool pool = IPancakeV3Pool(liquidityToAmountCalcParams.poolAddress);
+        (uint160 sqrtPriceX96, int24 tick, , , , , ) = pool.slot0();
+        if (tick <= liquidityToAmountCalcParams.tickLower) {
             x = changeInAmountsForNewRatioParams.currAmount0Bal;
-        } else if (amount1 == 0) {
+        } else if (tick >= liquidityToAmountCalcParams.tickUpper) {
             y = changeInAmountsForNewRatioParams.currAmount1Bal;
         } else {
-            if (changeInAmountsForNewRatioParams.currAmount0Bal > changeInAmountsForNewRatioParams.currAmount1Bal) { //This check is to make sure the ratio doesn't get 0 when checking which ratio is greater
-                if (changeInAmountsForNewRatioParams.currAmount1Bal==0) {
-                    x = IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount1, changeInAmountsForNewRatioParams.currAmount0Bal, convertAmount0ToAmount1(amount0, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount1 + amount1*changeInAmountsForNewRatioParams.poolFee/1e6);
-                } else {
-                    if (changeInAmountsForNewRatioParams.currAmount0Bal / changeInAmountsForNewRatioParams.currAmount1Bal > amount0 / amount1) {
-                        x = IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount1, changeInAmountsForNewRatioParams.currAmount0Bal, convertAmount0ToAmount1(amount0, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount1 + amount1*changeInAmountsForNewRatioParams.poolFee/1e6) - 
-                        IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount0, changeInAmountsForNewRatioParams.currAmount1Bal, convertAmount0ToAmount1(amount0, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount1 + amount1*changeInAmountsForNewRatioParams.poolFee/1e6);
-                    } else {
-                        y = IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount0, changeInAmountsForNewRatioParams.currAmount1Bal, convertAmount1ToAmount0(amount1, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount0 + amount0*changeInAmountsForNewRatioParams.poolFee/1e6) - 
-                        IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount1, changeInAmountsForNewRatioParams.currAmount0Bal, convertAmount1ToAmount0(amount1, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount0 + amount0*changeInAmountsForNewRatioParams.poolFee/1e6);
-                    }
-                }
+            uint160 sqrtPriceAX96 = ITickMathLib(liquidityToAmountCalcParams.tickMathLib).getSqrtRatioAtTick(liquidityToAmountCalcParams.tickLower);
+            uint160 sqrtPriceBX96 = ITickMathLib(liquidityToAmountCalcParams.tickMathLib).getSqrtRatioAtTick(liquidityToAmountCalcParams.tickUpper);
+            uint128 liquidity0 = ILiquidityAmountsLib(changeInAmountsForNewRatioParams.liquidityAmountsLib).getLiquidityForAmount0(sqrtPriceX96, sqrtPriceBX96, changeInAmountsForNewRatioParams.currAmount0Bal);
+            uint128 liquidity1 = ILiquidityAmountsLib(changeInAmountsForNewRatioParams.liquidityAmountsLib).getLiquidityForAmount1(sqrtPriceAX96, sqrtPriceX96, changeInAmountsForNewRatioParams.currAmount1Bal);
+            if (liquidity0 < liquidity1) {
+                uint256 denom = sqrtPriceBX96 * (sqrtPriceX96 - sqrtPriceAX96) / sqrtPriceX96 + (1 + changeInAmountsForNewRatioParams.poolFee) * (sqrtPriceBX96 - sqrtPriceX96);
+                y = IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(changeInAmountsForNewRatioParams.currAmount1Bal, (sqrtPriceBX96 - sqrtPriceX96), 
+                denom) - IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(changeInAmountsForNewRatioParams.currAmount0Bal * sqrtPriceX96, (sqrtPriceX96 - sqrtPriceAX96) * sqrtPriceBX96, denom);
             } else {
-                if (changeInAmountsForNewRatioParams.currAmount0Bal == 0) {
-                    y = IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount0, changeInAmountsForNewRatioParams.currAmount1Bal, convertAmount1ToAmount0(amount1, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount0 + amount0*changeInAmountsForNewRatioParams.poolFee/1e6);
-                } else {
-                    if (changeInAmountsForNewRatioParams.currAmount1Bal / changeInAmountsForNewRatioParams.currAmount0Bal > amount1 / amount0) {
-                        y = IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount0, changeInAmountsForNewRatioParams.currAmount1Bal, convertAmount1ToAmount0(amount1, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount0 + amount0*changeInAmountsForNewRatioParams.poolFee/1e6) - 
-                        IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount1, changeInAmountsForNewRatioParams.currAmount0Bal, convertAmount1ToAmount0(amount1, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount0 + amount0*changeInAmountsForNewRatioParams.poolFee/1e6);
-                    } else {
-                        x = IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount1, changeInAmountsForNewRatioParams.currAmount0Bal, convertAmount0ToAmount1(amount0, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount1 + amount1*changeInAmountsForNewRatioParams.poolFee/1e6) - 
-                        IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(amount0, changeInAmountsForNewRatioParams.currAmount1Bal, convertAmount0ToAmount1(amount0, liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib) + amount1 + amount1*changeInAmountsForNewRatioParams.poolFee/1e6);
-                    }
-                }
+                // console2.log("Entered else");
+                // // console2.log(sqrtPriceBX96);
+                // // console2.log(sqrtPriceAX96);
+                // // console2.log(sqrtPriceX96 * sqrtPriceX96);
+                // uint256 denom = sqrtPriceBX96 - sqrtPriceX96 + (1 + changeInAmountsForNewRatioParams.poolFee) * IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib)
+                // .mulDiv(sqrtPriceBX96, (sqrtPriceX96 - sqrtPriceAX96), sqrtPriceX96);
+                // console2.log("denom");
+                // console2.log(denom);
+                // x = IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(changeInAmountsForNewRatioParams.currAmount0Bal, 
+                // IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv((sqrtPriceX96 - sqrtPriceAX96), sqrtPriceBX96, sqrtPriceX96), 
+                // denom) - convertAmount1ToAmount0(IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(changeInAmountsForNewRatioParams.currAmount1Bal, 
+                // (sqrtPriceBX96 - sqrtPriceX96), denom), liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib);
+                uint256 denom = (sqrtPriceBX96 - sqrtPriceX96) + IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv((1 + changeInAmountsForNewRatioParams.poolFee) * sqrtPriceBX96, (sqrtPriceX96 - sqrtPriceAX96), sqrtPriceX96);
+                console2.log("denom");
+                console2.log(denom);
+                x = IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(changeInAmountsForNewRatioParams.currAmount0Bal, IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(sqrtPriceBX96, (sqrtPriceX96 - sqrtPriceAX96), sqrtPriceX96), 
+                denom) - convertAmount1ToAmount0(IFullMathLib(changeInAmountsForNewRatioParams.fullMathLib).mulDiv(changeInAmountsForNewRatioParams.currAmount1Bal, (sqrtPriceBX96 - sqrtPriceX96), denom), liquidityToAmountCalcParams.poolAddress, changeInAmountsForNewRatioParams.fullMathLib);
             }
         }
+        x = x * (1 + changeInAmountsForNewRatioParams.poolFee);
+        y = y * (1 + changeInAmountsForNewRatioParams.poolFee);
     }
 
     struct UnclaimedFeeCalcInfo {

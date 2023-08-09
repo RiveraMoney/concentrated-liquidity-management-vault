@@ -253,7 +253,7 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         uint256 currAmount0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 currAmount1Bal = IERC20(lpToken1).balanceOf(address(this));
         (uint256 x, uint256 y) = DexV3Calculations.changeInAmountsToNewRangeRatio(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
-        ChangeInAmountsForNewRatioParams(poolFee, currAmount0Bal, currAmount1Bal, fullMathLib));
+        ChangeInAmountsForNewRatioParams(poolFee, currAmount0Bal, currAmount1Bal, fullMathLib, liquidityAmountsLib));
         if (x!=0) {
             _swapV3In(lpToken0, lpToken1, x, poolFee);
         }
