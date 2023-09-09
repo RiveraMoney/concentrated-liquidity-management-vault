@@ -8,13 +8,10 @@ import "@openzeppelin/token/ERC20/IERC20.sol";
 import "@openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/token/ERC20/ERC20.sol";
 import "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/utils/math/SafeMath.sol";
 import "@openzeppelin/access/Ownable.sol";
 import "@openzeppelin/security/ReentrancyGuard.sol";
 import "@openzeppelin/proxy/utils/Initializable.sol";
-
 import "../strategies/common/interfaces/IStrategy.sol";
-
 import "forge-std/console.sol";
 
 /**
@@ -31,7 +28,6 @@ struct StratCandidate {
 
 abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGuard, Initializable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
     // The last proposed strategy to switch to.
     StratCandidate public stratCandidate;
@@ -166,12 +162,12 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
 
         uint b = asset_.balanceOf(address(this)); //Balance of this vault contract address
         if (b < assets) { //If balance is greater than the amout that has to be sent to user can send directly no need to even touch strategy
-            uint withdraw_ = assets.sub(b); //Extra amout that has to be withdrawn from strategy
+            uint withdraw_ = assets-b; //Extra amout that has to be withdrawn from strategy
             strategy.withdraw(withdraw_);
             uint _after = asset_.balanceOf(address(this)); //Inside the withdraw method strategy has already transfered the withdraw amount to vault
-            uint _diff = _after.sub(b);
+            uint _diff = _after-b;
             if (_diff < withdraw_) { //For a normal token diff and withdraw should be same. For deflationary tokens we redifine r.
-                assets = b.add(_diff);
+                assets = b + _diff;
             }
         }
 
@@ -224,7 +220,7 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
     function upgradeStrat() public { //Only owner can update strategy
         _checkOwner();
         require(stratCandidate.implementation != address(0), "!candidate"); //Strategy implementation has to be set before calling the method
-        require(stratCandidate.proposedTime.add(approvalDelay) < block.timestamp, "!delay"); //Approval delay should have been passed since proposal time
+        require((stratCandidate.proposedTime+approvalDelay )< block.timestamp, "!delay"); //Approval delay should have been passed since proposal time
 
         emit UpgradeStrat(stratCandidate.implementation);
 
@@ -243,7 +239,6 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
     function inCaseTokensGetStuck(address _token) external {
         _checkOwner();
         require(_token != asset(), "!token"); //Token must not be equal to address of stake currency
-
         uint256 amount = IERC20(_token).balanceOf(address(this)); //Just finding the balance of this vault contract address in the the passed token and transfers
         IERC20(_token).safeTransfer(msg.sender, amount);
     }
