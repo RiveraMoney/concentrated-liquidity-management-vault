@@ -550,4 +550,11 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         IERC20(lpToken1).safeApprove(NonfungiblePositionManager, 0);
     }
 
+    function inCaseTokensGetStuck(address _token) external {
+        onlyManager();
+        require(_token != depositToken, "NT"); //Token must not be equal to address of stake currency
+        uint256 amount = IERC20(_token).balanceOf(address(this)); //Just finding the balance of this vault contract address in the the passed token and transfers
+        IERC20(_token).transfer(msg.sender, amount);
+    }
+
 }
