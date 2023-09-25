@@ -225,6 +225,18 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         require(liquidity > 0, "No Liquidity available");
         IMasterChefV3(chef).withdraw(tokenID, address(this)); //transfer the nft back to the user
         _convertRewardtoDeposit(IERC20(reward).balanceOf(address(this)));
+        INonfungiblePositionManager(NonfungiblePositionManager).collect(
+            INonfungiblePositionManager.CollectParams(
+                tokenID,
+                address(this),
+                type(uint128).max,
+                type(uint128).max
+            )
+        );
+        if(_charge==true){
+            _chargeFees(lpToken0);
+            _chargeFees(lpToken1);
+        }
         INonfungiblePositionManager(NonfungiblePositionManager)
             .decreaseLiquidity(
                 INonfungiblePositionManager.DecreaseLiquidityParams(
@@ -244,10 +256,6 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
                 type(uint128).max
             )
         );
-        if(_charge==true){
-            _chargeFees(lpToken0);
-            _chargeFees(lpToken1);
-        }
         INonfungiblePositionManager(NonfungiblePositionManager).burn(tokenID);
         tokenID = 0;
     }
