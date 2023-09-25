@@ -220,11 +220,11 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         IMasterChefV3(chef).updateLiquidity(tokenID);
     }
 
-    function _burnAndCollectV3() internal nonReentrant returns (uint256 amount0, uint256 amount1) {
+    function _burnAndCollectV3(bool _charge) internal nonReentrant  {
         uint128 liquidity = liquidityBalance();
         require(liquidity > 0, "No Liquidity available");
         IMasterChefV3(chef).withdraw(tokenID, address(this)); //transfer the nft back to the user
-
+        _convertRewardtoDeposit(IERC20(reward).balanceOf(address(this)));
         INonfungiblePositionManager(NonfungiblePositionManager)
             .decreaseLiquidity(
                 INonfungiblePositionManager.DecreaseLiquidityParams(
@@ -236,7 +236,7 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
                 )
             );
 
-        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(
+        INonfungiblePositionManager(NonfungiblePositionManager).collect(
             INonfungiblePositionManager.CollectParams(
                 tokenID,
                 address(this),
@@ -244,6 +244,10 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
                 type(uint128).max
             )
         );
+        if(_charge==true){
+            _chargeFees(lpToken0);
+            _chargeFees(lpToken1);
+        }
         INonfungiblePositionManager(NonfungiblePositionManager).burn(tokenID);
         tokenID = 0;
     }
@@ -266,7 +270,7 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     function changeRange(int24 _tickLower, int24 _tickUpper) external virtual {
         _checkOwner();
         DexV3Calculations.checkTicks(tickLower, tickUpper, _tickLower, _tickUpper, tickMathLib, stake);
-        _burnAndCollectV3();        //This will return token0 and token1 in a ratio that is corresponding to the current range not the one we're setting it to
+        _burnAndCollectV3(true);        //This will return token0 and token1 in a ratio that is corresponding to the current range not the one we're setting it to
         tickLower = _tickLower;
         tickUpper = _tickUpper;
         _deposit();
@@ -311,17 +315,7 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         _requireNotPaused();
         IMasterChefV3(chef).harvest(tokenID, address(this));
         uint256 rewardBal = IERC20(reward).balanceOf(address(this));
-        if (rewardBal > 0) {
-            if (lpToken0 != reward && lpToken0 == depositToken) {
-                _swapV3PathIn(rewardToLp0AddressPath, rewardToLp0FeePath, rewardBal);
-            }
-
-            if (lpToken1 != reward && lpToken1 == depositToken) {
-                _swapV3PathIn(rewardToLp1AddressPath, rewardToLp1FeePath, rewardBal);
-            }
-
-            lastHarvest = block.timestamp;
-        }
+        _convertRewardtoDeposit(rewardBal);
         IMasterChefV3(chef).collect(
             INonfungiblePositionManager.CollectParams(
                 tokenID,
@@ -378,6 +372,19 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         }
     }
 
+    function _convertRewardtoDeposit(uint _rewardBal) internal{
+        if (_rewardBal > 0) {
+            if (lpToken0 != reward && lpToken0 == depositToken) {
+                _swapV3PathIn(rewardToLp0AddressPath, rewardToLp0FeePath, _rewardBal);
+            }
+
+            if (lpToken1 != reward && lpToken1 == depositToken) {
+                _swapV3PathIn(rewardToLp1AddressPath, rewardToLp1FeePath, _rewardBal);
+            }
+            lastHarvest = block.timestamp;
+        }
+    }
+
     // function getRewardToLp0Path() external view returns (address[] memory, uint24[] memory) {
     //     return (rewardToLp0AddressPath, rewardToLp0FeePath);
     // }
@@ -389,6 +396,8 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     function setRewardToLp0Path(address[] memory rewardToLp0AddressPath_, uint24[] memory rewardToLp0FeePath_) external {
         onlyManager();
         require(rewardToLp0FeePath_.length == rewardToLp0AddressPath_.length - 1, "IP");
+        rewardToLp0AddressPath=new address[](0);
+        rewardToLp0FeePath=new uint24[](0);
         _setAddressArray(rewardToLp0AddressPath, rewardToLp0AddressPath_);
         _setUint24Array(rewardToLp0FeePath, rewardToLp0FeePath_);
         emit RewardToLp0PathChange(rewardToLp0AddressPath_, rewardToLp0FeePath_);
@@ -397,6 +406,8 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     function setRewardToLp1Path(address[] memory rewardToLp1AddressPath_, uint24[] memory rewardToLp1FeePath_) external {
         onlyManager();
         require(rewardToLp1FeePath_.length == rewardToLp1AddressPath_.length - 1, "IP");
+        rewardToLp1AddressPath=new address[](0);
+        rewardToLp1FeePath=new uint24[](0);
         _setAddressArray(rewardToLp1AddressPath, rewardToLp1AddressPath_);
         _setUint24Array(rewardToLp1FeePath, rewardToLp1FeePath_);
         emit RewardToLp1PathChange(rewardToLp1AddressPath_, rewardToLp1FeePath_);
@@ -491,16 +502,16 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     // called as part of strat migration. Sends all the available funds back to the vault.
     function retireStrat() external {
         onlyVault();
-        (uint256 amount0, uint256 amount1) = _burnAndCollectV3();
-        IERC20(depositToken).safeTransfer(vault, _lptoDepositTokenSwap(amount0, amount1));
+        _burnAndCollectV3(false);
+        IERC20(depositToken).safeTransfer(vault, _lptoDepositTokenSwap(IERC20(lpToken0).balanceOf(address(this)), IERC20(lpToken1).balanceOf(address(this))));
     }
 
     // pauses deposits and withdraws all funds from third party systems.
     function panic() public {
         onlyManager();
+        _burnAndCollectV3(false);
+        IERC20(depositToken).safeTransfer(vault, _lptoDepositTokenSwap(IERC20(lpToken0).balanceOf(address(this)), IERC20(lpToken1).balanceOf(address(this))));
         pause();
-        (uint256 amount0, uint256 amount1) = _burnAndCollectV3();
-        IERC20(depositToken).safeTransfer(vault, _lptoDepositTokenSwap(amount0, amount1));
     }
 
     function pause() public {

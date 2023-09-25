@@ -7,7 +7,6 @@ import "@rivera/strategies/staking/interfaces/INonfungiblePositionManager.sol";
 
 import "@rivera/strategies/staking/interfaces/libraries/ITickMathLib.sol";
 import "@rivera/strategies/staking/interfaces/libraries/ISqrtPriceMathLib.sol";
-import "@rivera/strategies/staking/interfaces/libraries/ILiquidityMathLib.sol";
 import "@rivera/strategies/staking/interfaces/libraries/ISafeCastLib.sol";
 import "@rivera/strategies/staking/interfaces/libraries/ILiquidityAmountsLib.sol";
 import "@rivera/strategies/staking/interfaces/libraries/IFullMathLib.sol";

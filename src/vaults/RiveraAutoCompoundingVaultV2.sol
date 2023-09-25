@@ -89,7 +89,7 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         if (strategy.paused()) return 0;
         uint256 maxFromTotalTvlCap = totalTvlCap - totalAssets();
         uint256 userCap = userTvlCap[receiver];
-        uint256 maxFromUserTvlCap = userCap > 0? userTvlCap[receiver] - previewMint(balanceOf(receiver)): type(uint256).max;
+        uint256 maxFromUserTvlCap = userCap > 0? userCap - previewMint(balanceOf(receiver)): type(uint256).max;
         return maxFromTotalTvlCap < maxFromUserTvlCap ? maxFromTotalTvlCap : maxFromUserTvlCap;
     }
 
@@ -98,7 +98,7 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         if (strategy.paused()) return 0;
         uint256 maxFromTotalTvlCap = this.convertToShares(totalTvlCap - this.totalAssets());
         uint256 userCap = userTvlCap[receiver];
-        uint256 maxFromUserTvlCap = userCap > 0? convertToShares(userTvlCap[receiver]) - balanceOf(receiver): type(uint256).max;
+        uint256 maxFromUserTvlCap = userCap > 0? convertToShares(userCap) - balanceOf(receiver): type(uint256).max;
         return maxFromTotalTvlCap < maxFromUserTvlCap ? maxFromTotalTvlCap : maxFromUserTvlCap;
     }
 
@@ -152,7 +152,7 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
         uint256 assets,
         uint256 shares
     ) internal virtual override {
-        _restrictAccess();
+        // _restrictAccess();
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
@@ -181,14 +181,14 @@ abstract contract RiveraAutoCompoundingVaultV2 is ERC4626, Ownable, ReentrancyGu
     function setTotalTvlCap(uint256 totalTvlCap_) external {
         _checkOwner();
         require(totalTvlCap != totalTvlCap_, "Same TVL cap");
-        emit TvlCapChange(owner(), totalTvlCap, totalTvlCap_);
+        emit TvlCapChange(msg.sender, totalTvlCap, totalTvlCap_);
         totalTvlCap = totalTvlCap_;
     }
 
     function setUserTvlCap(address user_, uint256 userTvlCap_) external {
         _checkOwner();
         require(userTvlCap[user_] != userTvlCap_, "Same User cap");
-        emit UserTvlCapChange(owner(), user_, userTvlCap[user_], userTvlCap_);
+        emit UserTvlCapChange(msg.sender, user_, userTvlCap[user_], userTvlCap_);
         userTvlCap[user_] = userTvlCap_;
     }
 
