@@ -44,15 +44,15 @@ struct CommonAddresses {
     address vault;
     address router;
     address NonfungiblePositionManager;
-
     uint256 withdrawFeeDecimals;
     uint256 withdrawFee;
-
     uint256 feeDecimals;
     uint256 protocolFee;
     uint256 fundManagerFee;
     uint256 partnerFee;
     address partner;
+    address manager;
+    address owner;
 }
 
 contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initializable {
@@ -135,7 +135,7 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         assettoNativeFeed = _riveraLpStakingParams.assettoNativeFeed;
         vault = _commonAddresses.vault;
         router = _commonAddresses.router;
-        manager = msg.sender;
+        // manager = msg.sender;
         NonfungiblePositionManager = _commonAddresses.NonfungiblePositionManager;
         pendingRewardsFunctionName=_riveraLpStakingParams.pendingRewardsFunctionName;
 
@@ -147,7 +147,8 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         fundManagerFee = _commonAddresses.fundManagerFee;
         partnerFee = _commonAddresses.partnerFee;
         partner = _commonAddresses.partner;
-
+        _transferManagership(_commonAddresses.manager);
+        _transferOwnership(_commonAddresses.owner);
         _giveAllowances();
     }
 
