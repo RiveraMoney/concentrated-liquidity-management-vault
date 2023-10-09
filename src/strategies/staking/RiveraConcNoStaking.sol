@@ -8,6 +8,9 @@ import "@openzeppelin/security/ReentrancyGuard.sol";
 
 import "@pancakeswap-v3-core/interfaces/IPancakeV3Pool.sol";
 
+import "./interfaces/ISwap.sol";
+import "./interfaces/ILiquidityManager.sol";
+
 import "./interfaces/IMasterChefV3.sol";
 import "./interfaces/INonfungiblePositionManager.sol";
 import "../common/FeeManager.sol";
@@ -61,6 +64,8 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     address public depositToken;
 
     // Third party contracts
+    address iziLiq;
+    address iziSwap;
     address public chef;
     address public tickMathLib;
     address public sqrtPriceMathLib;
@@ -92,7 +97,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     ///@dev
     ///@param _riveraLpStakingParams: Has the pool specific params
     ///@param _commonAddresses: Has addresses common to all vaults, check Rivera Fee manager for more info
-    function init(RiveraLpStakingParams memory _riveraLpStakingParams, CommonAddresses memory _commonAddresses) public virtual initializer {
+    function init(RiveraLpStakingParams memory _riveraLpStakingParams, CommonAddresses memory _commonAddresses , address _iziLiq , address _iziSwap) public virtual initializer {
         tickMathLib = _riveraLpStakingParams.tickMathLib;
         sqrtPriceMathLib = _riveraLpStakingParams.sqrtPriceMathLib;
         liquidityMathLib = _riveraLpStakingParams.liquidityMathLib;
@@ -122,6 +127,10 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         fundManagerFee = _commonAddresses.fundManagerFee;
         partnerFee = _commonAddresses.partnerFee;
         partner = _commonAddresses.partner;
+
+        iziLiq = _iziLiq;
+        iziSwap = _iziSwap;
+
         _transferManagership(_commonAddresses.manager);
         _transferOwnership(_commonAddresses.owner);
         _giveAllowances();
@@ -151,23 +160,40 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
 
-        (uint256 tokenId, , , ) = INonfungiblePositionManager(
-            NonfungiblePositionManager
-        ).mint(
-                INonfungiblePositionManager.MintParams(
-                    lpToken0,
-                    lpToken1,
-                    poolFee,
-                    tickLower,
-                    tickUpper,
-                    lp0Bal,
-                    lp1Bal,
-                    0,
-                    0,
-                    address(this),
-                    block.timestamp
-                )
-            );
+        // (uint256 tokenId, , , ) = INonfungiblePositionManager(
+        //     NonfungiblePositionManager
+        // ).mint(
+        //         INonfungiblePositionManager.MintParams(
+        //             lpToken0,
+        //             lpToken1,
+        //             poolFee,
+        //             tickLower,
+        //             tickUpper,
+        //             lp0Bal,
+        //             lp1Bal,
+        //             0,
+        //             0,
+        //             address(this),
+        //             block.timestamp
+        //         )
+        //     );
+        
+        (uint256 tokenID, , , , )= ILiquidityManager(iziLiq).mint(
+            ILiquidityManager.MintParam(
+                address(this),
+                lpToken0,
+                lpToken1,
+                poolFee,
+                tickLower,
+                tickUpper,
+                lp0Bal,
+                lp1Bal,
+                0,
+                0,
+                block.timestamp
+            )
+        );
+
         tokenID = tokenId;
     }
 
@@ -176,55 +202,78 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
 
-        INonfungiblePositionManager(
-            NonfungiblePositionManager
-        ).increaseLiquidity(
-                INonfungiblePositionManager.IncreaseLiquidityParams(
-                    tokenID,
-                    lp0Bal,
-                    lp1Bal,
-                    0,
-                    0,
-                    block.timestamp
-                )
-            );
+        // INonfungiblePositionManager(
+        //     NonfungiblePositionManager
+        // ).increaseLiquidity(
+        //         INonfungiblePositionManager.IncreaseLiquidityParams(
+        //             tokenID,
+        //             lp0Bal,
+        //             lp1Bal,
+        //             0,
+        //             0,
+        //             block.timestamp
+        //         )
+        //     );
+
+        ILiquidityManager(iziLiq).addLiquidity(
+            ILiquidityManager.AddLiquidityParam(
+                tokenID,
+                lp0Bal,
+                lp1Bal,
+                0,
+                0,
+                block.timestamp
+            )
+        );
     }
 
     function _burnAndCollectV3(bool _charge) internal nonReentrant  {
         uint128 liquidity = liquidityBalance();
         require(liquidity > 0, "No Liquidity available");
-        INonfungiblePositionManager(NonfungiblePositionManager).collect(
-            INonfungiblePositionManager.CollectParams(
-                tokenID,
-                address(this),
-                type(uint128).max,
-                type(uint128).max
-            )
-        );
+        // INonfungiblePositionManager(NonfungiblePositionManager).collect(
+        //     INonfungiblePositionManager.CollectParams(
+        //         tokenID,
+        //         address(this),
+        //         type(uint128).max,
+        //         type(uint128).max
+        //     )
+        // );
+           ILiquidityManager(iziLiq).collect(address(this) , tokenID , type(uint128).max,type(uint128).max);
+          
+
         if(_charge==true){
             _chargeFees(lpToken0);
             _chargeFees(lpToken1);
         }
-        INonfungiblePositionManager(NonfungiblePositionManager)
-            .decreaseLiquidity(
-                INonfungiblePositionManager.DecreaseLiquidityParams(
-                    tokenID,
-                    liquidity,
-                    0,
-                    0,
-                    block.timestamp
-                )
-            );
+        // INonfungiblePositionManager(NonfungiblePositionManager)
+        //     .decreaseLiquidity(
+        //         INonfungiblePositionManager.DecreaseLiquidityParams(
+        //             tokenID,
+        //             liquidity,
+        //             0,
+        //             0,
+        //             block.timestamp
+        //         )
+        //     );
+           
+           ILiquidityManager(iziLiq).decLiquidity(tokenID,liquidity,0,0,block.timestamp);
+           
 
-        INonfungiblePositionManager(NonfungiblePositionManager).collect(
-            INonfungiblePositionManager.CollectParams(
-                tokenID,
-                address(this),
-                type(uint128).max,
-                type(uint128).max
-            )
-        );
-        INonfungiblePositionManager(NonfungiblePositionManager).burn(tokenID);
+
+        // INonfungiblePositionManager(NonfungiblePositionManager).collect(
+        //     INonfungiblePositionManager.CollectParams(
+        //         tokenID,
+        //         address(this),
+        //         type(uint128).max,
+        //         type(uint128).max
+        //     )
+        // );
+
+           ILiquidityManager(iziLiq).collect(address(this) , tokenID , type(uint128).max,type(uint128).max);
+
+        // INonfungiblePositionManager(NonfungiblePositionManager).burn(tokenID);
+        ILiquidityManager(iziLiq).burn(tokenID);
+
         tokenID = 0;
     }
 
@@ -260,22 +309,26 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         if (liquidityDelta > liquidityAvlbl) {
             liquidityDelta = liquidityAvlbl;
         }
-        IMasterChefV3(NonfungiblePositionManager).decreaseLiquidity(
-            INonfungiblePositionManager.DecreaseLiquidityParams(
-                tokenID,
-                liquidityDelta,
-                0,
-                0,
-                block.timestamp
-            )
-        );
+        // IMasterChefV3(NonfungiblePositionManager).decreaseLiquidity(
+        //     INonfungiblePositionManager.DecreaseLiquidityParams(
+        //         tokenID,
+        //         liquidityDelta,
+        //         0,
+        //         0,
+        //         block.timestamp
+        //     )
+        // );
 
-        (userAmount0, userAmount1) = IMasterChefV3(NonfungiblePositionManager).collect(INonfungiblePositionManager.CollectParams(
-                tokenID,
-                address(this),
-                type(uint128).max,
-                type(uint128).max
-            ));
+        ILiquidityManager(iziLiq).decLiquidity(tokenID,liquidityDelta,0,0,block.timestamp);
+
+        // (userAmount0, userAmount1) = IMasterChefV3(NonfungiblePositionManager).collect(INonfungiblePositionManager.CollectParams(
+        //         tokenID,
+        //         address(this),
+        //         type(uint128).max,
+        //         type(uint128).max
+        //     ));
+
+        (userAmount0, userAmount1) = ILiquidityManager(iziLiq).collect(address(this) , tokenID , type(uint128).max,type(uint128).max);
         
     }
 
@@ -290,14 +343,15 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
 
     function harvest() external virtual {
         _requireNotPaused();
-        IMasterChefV3(NonfungiblePositionManager).collect(
-            INonfungiblePositionManager.CollectParams(
-                tokenID,
-                address(this),
-                type(uint128).max,
-                type(uint128).max
-            )
-        );
+        // IMasterChefV3(NonfungiblePositionManager).collect(
+        //     INonfungiblePositionManager.CollectParams(
+        //         tokenID,
+        //         address(this),
+        //         type(uint128).max,
+        //         type(uint128).max
+        //     )
+        // );
+        ILiquidityManager(iziLiq).collect(address(this) , tokenID , type(uint128).max,type(uint128).max);
         
         _chargeFees(lpToken0);
         _chargeFees(lpToken1);
@@ -398,7 +452,8 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         if(tokenID==0){
             return 0;
         }else{
-            (, , ,, ,,,  liquidity,,, ,  ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenID);
+            //(, , ,, ,,,  liquidity,,, ,  ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenID);
+            (, , liquidity , , , , , ) =ILiquidityManager(iziLiq).liquidities(tokenID);
         }
     }
 
