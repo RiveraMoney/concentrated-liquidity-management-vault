@@ -54,14 +54,12 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     // bool public hasFarm;
 
     // Tokens used
-    address public reward;
     address public stake;
     address public lpToken0;
     address public lpToken1;
     address public depositToken;
 
     // Third party contracts
-    address public chef;
     address public tickMathLib;
     address public sqrtPriceMathLib;
     address public liquidityMathLib;
@@ -85,8 +83,6 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     event Deposit(uint256 tvl, uint256 amount);
     event Withdraw(uint256 tvl, uint256 amount);
     event RangeChange(int24 tickLower, int24 tickUpper);
-    event RewardToLp0PathChange(address[] newRewardToLp0AddressPath, uint24[] newRewardToLp0FeePath);
-    event RewardToLp1PathChange(address[] newRewardToLp1AddressPath, uint24[] newRewardToLp1FeePath);
     event AssetToNativeFeedChange(address oldFeed, address newFeed);
 
     ///@dev
@@ -298,7 +294,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
                 type(uint128).max
             )
         );
-        
+        lastHarvest = block.timestamp;
         _chargeFees(lpToken0);
         _chargeFees(lpToken1);
         _deposit();
@@ -449,7 +445,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
 
         _giveAllowances();
 
-        deposit();
+        // deposit();
     }
 
     function _giveAllowances() internal virtual {

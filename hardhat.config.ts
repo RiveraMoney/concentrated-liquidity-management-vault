@@ -45,6 +45,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
+        // runs: 200
         runs: 200
       },
     },
@@ -89,11 +90,24 @@ const config: HardhatUserConfig = {
       chainId: 5001,
       // accounts: [MAIN_NET_TRANSACTION_ACCOUNT, TEST_ACCOUNT1, TEST_ACCOUNT2]
     },
+    mantle_mainnet: {
+      url: "https://rpc.mantle.xyz/",
+      chainId: 5000,
+      // accounts: [MAIN_NET_TRANSACTION_ACCOUNT, TEST_ACCOUNT1, TEST_ACCOUNT2]
+    },
+    manta_mainnet: {
+      // url: "https://pacific-rpc.manta.network/http",
+      url: "https://manta-pacific.calderachain.xyz/http",
+      chainId: 169,
+      // accounts: [MAIN_NET_TRANSACTION_ACCOUNT, TEST_ACCOUNT1, TEST_ACCOUNT2]
+    },
   },
   etherscan: {
     apiKey: { 
       "bsc": BSC_SCAN_API_KEY,
       "mantle_testnet": 'xyz',
+      "mantle_mainnet":"7P5V5CFSEFMERAGWV2J7RGX583QCMT7VFV",
+      "manta_mainnet":"test"
     },
     customChains: [
       {
@@ -102,6 +116,24 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://explorer.testnet.mantle.xyz/api",
           browserURL: "https://explorer.testnet.mantle.xyz"
+        },
+      },
+      {
+        network: "mantle_mainnet",
+        chainId: 5000,
+        urls: {
+          apiURL: "https://explorer.mantle.xyz/api",
+          browserURL: "https://explorer.mantle.xyz/"
+        },
+      },
+      {
+        network: "manta_mainnet",
+        chainId: 169,
+        urls: {
+          // apiURL: "https://pacific-explorer.manta.network/api",
+          // browserURL: "https://pacific-explorer.manta.network/"
+          apiURL: "https://manta-pacific.calderaexplorer.xyz/api",
+          browserURL: "https://manta-pacific.calderaexplorer.xyz",
         },
       },
     ],
