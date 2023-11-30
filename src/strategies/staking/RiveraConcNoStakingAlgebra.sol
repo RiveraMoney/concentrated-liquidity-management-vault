@@ -8,16 +8,19 @@ import "@openzeppelin/security/ReentrancyGuard.sol";
 
 import "@pancakeswap-v3-core/interfaces/IPancakeV3Pool.sol";
 
-import "./interfaces/IMasterChefV3.sol";
-import "./interfaces/INonfungiblePositionManager.sol";
+import "./interfaces/IMasterChefV3Algebra.sol";
+// import "./interfaces/INonfungiblePositionManager.sol";
+import "./interfaces/INonfungiblePositionManagerAlgebra.sol";
 import "../common/FeeManager.sol";
 import "../utils/StringUtils.sol";
 import "@openzeppelin/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/proxy/utils/Initializable.sol";
-import "./interfaces/IV3SwapRouter.sol";
+// import "./interfaces/IV3SwapRouterAlgebra.sol";
+import "./interfaces/IV3SwapRouterAlgebra.sol";
 
-import "@rivera/libs/DexV3Calculations.sol";
-import "@rivera/libs/DexV3CalculationStruct.sol";
+import "@rivera/libs/DexV3CalculationsAlgebra.sol";
+// import "@rivera/libs/DexV3CalculationStruct.sol";
+// import "forge-std/console.sol";
 
 struct RiveraLpStakingParams {
     int24 tickLower;
@@ -47,7 +50,7 @@ struct CommonAddresses {
     address owner;
 }
 
-contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initializable {
+contract RiveraConcNoStakingAlgebra is FeeManager, ReentrancyGuard, ERC721Holder, Initializable {
     using SafeERC20 for IERC20;
 
     //To Farm or not
@@ -96,7 +99,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         liquidityAmountsLib = _riveraLpStakingParams.liquidityAmountsLib;
         fullMathLib = _riveraLpStakingParams.fullMathLib;
         stake = _riveraLpStakingParams.stake;
-        DexV3Calculations.checkTicks(0, 0, _riveraLpStakingParams.tickLower, _riveraLpStakingParams.tickUpper, tickMathLib, stake);
+        DexV3CalculationsAlgebra.checkTicks(0, 0, _riveraLpStakingParams.tickLower, _riveraLpStakingParams.tickUpper, tickMathLib, stake);
         tickLower = _riveraLpStakingParams.tickLower;
         tickUpper = _riveraLpStakingParams.tickUpper;
         poolFee = IPancakeV3Pool(stake).fee();
@@ -147,13 +150,12 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
 
-        (uint256 tokenId, , , ) = INonfungiblePositionManager(
+        (uint256 tokenId, , , ) = INonfungiblePositionManagerAlgebra(
             NonfungiblePositionManager
         ).mint(
-                INonfungiblePositionManager.MintParams(
+                INonfungiblePositionManagerAlgebra.MintParams(
                     lpToken0,
                     lpToken1,
-                    poolFee,
                     tickLower,
                     tickUpper,
                     lp0Bal,
@@ -172,10 +174,10 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
 
-        INonfungiblePositionManager(
+        INonfungiblePositionManagerAlgebra(
             NonfungiblePositionManager
         ).increaseLiquidity(
-                INonfungiblePositionManager.IncreaseLiquidityParams(
+                INonfungiblePositionManagerAlgebra.IncreaseLiquidityParams(
                     tokenID,
                     lp0Bal,
                     lp1Bal,
@@ -189,8 +191,8 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     function _burnAndCollectV3(bool _charge) internal nonReentrant  {
         uint128 liquidity = liquidityBalance();
         require(liquidity > 0, "No Liquidity available");
-        INonfungiblePositionManager(NonfungiblePositionManager).collect(
-            INonfungiblePositionManager.CollectParams(
+        INonfungiblePositionManagerAlgebra(NonfungiblePositionManager).collect(
+            INonfungiblePositionManagerAlgebra.CollectParams(
                 tokenID,
                 address(this),
                 type(uint128).max,
@@ -201,9 +203,9 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
             _chargeFees(lpToken0);
             _chargeFees(lpToken1);
         }
-        INonfungiblePositionManager(NonfungiblePositionManager)
+        INonfungiblePositionManagerAlgebra(NonfungiblePositionManager)
             .decreaseLiquidity(
-                INonfungiblePositionManager.DecreaseLiquidityParams(
+                INonfungiblePositionManagerAlgebra.DecreaseLiquidityParams(
                     tokenID,
                     liquidity,
                     0,
@@ -212,15 +214,15 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
                 )
             );
 
-        INonfungiblePositionManager(NonfungiblePositionManager).collect(
-            INonfungiblePositionManager.CollectParams(
+        INonfungiblePositionManagerAlgebra(NonfungiblePositionManager).collect(
+            INonfungiblePositionManagerAlgebra.CollectParams(
                 tokenID,
                 address(this),
                 type(uint128).max,
                 type(uint128).max
             )
         );
-        INonfungiblePositionManager(NonfungiblePositionManager).burn(tokenID);
+        INonfungiblePositionManagerAlgebra(NonfungiblePositionManager).burn(tokenID);
         tokenID = 0;
     }
 
@@ -228,7 +230,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     function _swapAssetsToNewRangeRatio() internal {      //lib
         uint256 currAmount0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 currAmount1Bal = IERC20(lpToken1).balanceOf(address(this));
-        (uint256 x, uint256 y) = DexV3Calculations.changeInAmountsToNewRangeRatio(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
+        (uint256 x, uint256 y) = DexV3CalculationsAlgebra.changeInAmountsToNewRangeRatio(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
         ChangeInAmountsForNewRatioParams(poolFee, currAmount0Bal, currAmount1Bal, fullMathLib));
         if (x!=0) {
             _swapV3In(lpToken0, lpToken1, x, poolFee);
@@ -241,7 +243,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     //{-52050,-42800}
     function changeRange(int24 _tickLower, int24 _tickUpper) external virtual {
         _checkOwner();
-        DexV3Calculations.checkTicks(tickLower, tickUpper, _tickLower, _tickUpper, tickMathLib, stake);
+        DexV3CalculationsAlgebra.checkTicks(tickLower, tickUpper, _tickLower, _tickUpper, tickMathLib, stake);
         _burnAndCollectV3(true);        //This will return token0 and token1 in a ratio that is corresponding to the current range not the one we're setting it to
         tickLower = _tickLower;
         tickUpper = _tickUpper;
@@ -250,14 +252,14 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     }
 
     function _withdrawV3(uint256 _amount) internal returns (uint256 userAmount0,  uint256 userAmount1) {
-        uint128 liquidityDelta = DexV3Calculations.calculateLiquidityDeltaForAssetAmount(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
+        uint128 liquidityDelta = DexV3CalculationsAlgebra.calculateLiquidityDeltaForAssetAmount(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
         LiquidityDeltaForAssetAmountParams(depositToken == lpToken0, poolFee, _amount, fullMathLib, liquidityAmountsLib));
         uint128 liquidityAvlbl = liquidityBalance();
         if (liquidityDelta > liquidityAvlbl) {
             liquidityDelta = liquidityAvlbl;
         }
-        IMasterChefV3(NonfungiblePositionManager).decreaseLiquidity(
-            INonfungiblePositionManager.DecreaseLiquidityParams(
+        IMasterChefV3Algebra(NonfungiblePositionManager).decreaseLiquidity(
+            INonfungiblePositionManagerAlgebra.DecreaseLiquidityParams(
                 tokenID,
                 liquidityDelta,
                 0,
@@ -266,7 +268,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
             )
         );
 
-        (userAmount0, userAmount1) = IMasterChefV3(NonfungiblePositionManager).collect(INonfungiblePositionManager.CollectParams(
+        (userAmount0, userAmount1) = IMasterChefV3Algebra(NonfungiblePositionManager).collect(INonfungiblePositionManagerAlgebra.CollectParams(
                 tokenID,
                 address(this),
                 type(uint128).max,
@@ -288,8 +290,8 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
 
     function harvest() external virtual {
         _requireNotPaused();
-        IMasterChefV3(NonfungiblePositionManager).collect(
-            INonfungiblePositionManager.CollectParams(
+        IMasterChefV3Algebra(NonfungiblePositionManager).collect(
+            INonfungiblePositionManagerAlgebra.CollectParams(
                 tokenID,
                 address(this),
                 type(uint128).max,
@@ -346,12 +348,12 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         uint256 amountIn,
         uint24 fee
     ) internal returns (uint256 amountOut) {
-        amountOut = IV3SwapRouter(router).exactInputSingle(
-            IV3SwapRouter.ExactInputSingleParams(
+        amountOut = IV3SwapRouterAlgebra(router).exactInputSingle(
+            IV3SwapRouterAlgebra.ExactInputSingleParams(
                 tokenIn,
                 tokenOut,
-                fee,
                 address(this),
+                block.timestamp,
                 amountIn,
                 0,
                 0
@@ -371,10 +373,11 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
             path = abi.encodePacked(path, feePath[i], tokenPath[i+1]);
         }
 
-        amountOut = IV3SwapRouter(router).exactInput(
-            IV3SwapRouter.ExactInputParams(
+        amountOut = IV3SwapRouterAlgebra(router).exactInput(
+            IV3SwapRouterAlgebra.ExactInputParams(
                 path,
                 address(this),
+                block.timestamp,
                 amountIn,
                 0
             )
@@ -383,12 +386,12 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
 
     function balanceOf() public view returns (uint256) {
         uint128 totalLiquidityDelta = liquidityBalance();
-        (uint256 amount0, uint256 amount1) = DexV3Calculations.liquidityToAmounts(LiquidityToAmountCalcParams(tickLower, tickUpper, totalLiquidityDelta, safeCastLib, sqrtPriceMathLib, tickMathLib, stake));
+        (uint256 amount0, uint256 amount1) = DexV3CalculationsAlgebra.liquidityToAmounts(LiquidityToAmountCalcParams(tickLower, tickUpper, totalLiquidityDelta, safeCastLib, sqrtPriceMathLib, tickMathLib, stake));
         uint256 vaultReserve = IERC20(depositToken).balanceOf(vault);
         if (depositToken == lpToken0) {
-            return amount0 + DexV3Calculations.convertAmount1ToAmount0(amount1, stake, fullMathLib) + vaultReserve;
+            return amount0 + DexV3CalculationsAlgebra.convertAmount1ToAmount0(amount1, stake, fullMathLib) + vaultReserve;
         } else {
-            return DexV3Calculations.convertAmount0ToAmount1(amount0, stake, fullMathLib) + amount1 + vaultReserve;
+            return DexV3CalculationsAlgebra.convertAmount0ToAmount1(amount0, stake, fullMathLib) + amount1 + vaultReserve;
         }
     }
 
@@ -396,7 +399,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         if(tokenID==0){
             return 0;
         }else{
-            (, , ,, ,,,  liquidity,,, ,  ) = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenID);
+            (, , ,, ,,  liquidity,,, ,  ) = INonfungiblePositionManagerAlgebra(NonfungiblePositionManager).positions(tokenID);
         }
     }
 
@@ -416,7 +419,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     // }
 
     // function lpRewardsAvailable() public view returns (uint256 lpFeesDepositToken) {
-    //     lpFeesDepositToken = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(depositToken == lpToken0, tokenID, stake, NonfungiblePositionManager, fullMathLib));
+    //     lpFeesDepositToken = DexV3CalculationsAlgebra.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(depositToken == lpToken0, tokenID, stake, NonfungiblePositionManager, fullMathLib));
     // }
 
     // called as part of strat migration. Sends all the available funds back to the vault.
@@ -437,16 +440,13 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     function pause() public {
         onlyManager();
         _pause();
-
         _removeAllowances();
     }
 
     function unpause() external {
         onlyManager();
         _unpause();
-
         _giveAllowances();
-
         // deposit();
     }
 
