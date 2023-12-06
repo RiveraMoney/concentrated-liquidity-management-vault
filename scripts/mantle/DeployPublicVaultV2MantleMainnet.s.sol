@@ -65,19 +65,23 @@ interface IRiveraVaultFactoryV2
 contract DeployPublicVaultV2MantleMainnet is Script {
 
     //factoru
-    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0x19F51834817708F2da9Ac7D0cc3eAFF0b6Ed17D7);
+    IRiveraVaultFactoryV2 _factory=IRiveraVaultFactoryV2(0xf4a048f424C1e9DFf7C70e59aa0D18909B5091Ac);
     address _stake = 0xA125AF1A4704044501Fe12Ca9567eF1550E430e8;//mainnet
     address _lpToken0=0x201EBa5CC46D216Ce6DC03F6a759e8E766e956aE;//mainnnet
     address _lpToken1=0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111;//mainnnet
-    int24 _tickLower = 50940;
-    int24 _tickUpper = 97020;
-    uint256 _withdrawFeeDecimals=100;
-    uint256 _withdrawFee=0;
+    address depositToken=_lpToken0;
+    int24 _tickLower = 179390;
+    int24 _tickUpper = 225450;
+    string _tokenName="RIV-01-06-A75";
+    string _tokenSymbol="RIV-01-06-A75";
+    uint256 vaultTvlCap = 100000e6;
+    uint256 _withdrawFeeDecimals=1000;
+    uint256 _withdrawFee=3;
     uint256 _feeDecimals=100;
     uint256 _protocolFee=15;
     uint256 _fundManagerFee=0;
     uint256 _partnerFee=0;
-    address _partner=0x961Ef0b358048D6E34BDD1acE00D72b37B9123D7 ;
+    address _partner=0x961Ef0b358048D6E34BDD1acE00D72b37B9123D7;
     address  assettoNativeFeed=address(0);
     address _user1;
     address _user2;
@@ -97,7 +101,7 @@ contract DeployPublicVaultV2MantleMainnet is Script {
     // string pendingReward="pendingFusionX";
     // address _reward = 0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82;
     // //libraries
-     address _tickMathLib =0x74C5E75798b33D38abeE64f7EC63698B7e0a10f1;
+    address _tickMathLib =0x74C5E75798b33D38abeE64f7EC63698B7e0a10f1;
     address _sqrtPriceMathLib = 0xA38Bf51645D77bd0ec5072Ae5eCA7c0e67CFc081;
     address _liquidityMathLib = 0xe6d2bD39aEFCDCFC989B03AE45A5aBEfe9BF1F51;
     address _safeCastLib = 0x55FD5B67B115767036f9e8af569B281A8A544a12;
@@ -109,7 +113,6 @@ contract DeployPublicVaultV2MantleMainnet is Script {
 
 
     uint256 stratUpdateDelay = 172800;
-    uint256 vaultTvlCap = 100000e6;
     VaultType _vaultType;
 
     function setUp() public {
@@ -164,11 +167,11 @@ contract DeployPublicVaultV2MantleMainnet is Script {
         console.log("======================Deploy Vaults====================");
         console.log("create vault");
         RiveraVaultParams memory createVaultParamsFsxPool= RiveraVaultParams(
-            _lpToken0,
+            depositToken,
             vaultTvlCap,
             stratUpdateDelay,
-            "RIV-01-01-Y",
-            "RIV-01-01-Y",
+            _tokenName,
+            _tokenSymbol,
             _tickLower,
             _tickUpper,
             _stake,
@@ -196,22 +199,22 @@ contract DeployPublicVaultV2MantleMainnet is Script {
             _partnerFee,
             _partner
         );
-        address vaultFsxPool = _createVault(_factory,createVaultParamsFsxPool,feeParams);
-        console.log("Vault RIV-01-01-Y ",vaultFsxPool);
+        address vaultDeployed = _createVault(_factory,createVaultParamsFsxPool,feeParams);
+        console.log("Vault",vaultDeployed);
         console.log("======================"); 
         vm.stopBroadcast(); 
         address[] memory vault=_factory.listAllVaults();
         console.log("all vaults",vault.length);
         console.log("======================Deposit in Vault====================");
-        uint256 depositAmount1=IERC20(_lpToken0).balanceOf(_user3)/2;///vault 1 deposit amount
+        uint256 depositAmount1=IERC20(depositToken).balanceOf(_user3)/3;///vault 1 deposit amount
         vm.startBroadcast(_privateKey3);
-        IERC20(_lpToken0).approve(vaultFsxPool, depositAmount1);
-        RiveraAutoCompoundingVaultV2Public(vaultFsxPool).deposit(depositAmount1, _user3);
+        IERC20(depositToken).approve(vaultDeployed, depositAmount1);
+        RiveraAutoCompoundingVaultV2Public(vaultDeployed).deposit(depositAmount1, _user3);
         console.log("deposited");
         vm.stopBroadcast();
         // vm.startBroadcast(_privateKey4);
-        // IERC20(l_lpToken0).approve(vaultFsxPool, depositAmount1);
-        // RiveraAutoCompoundingVaultV2Public(vaultFsxPool).deposit(depositAmount1, _user4);
+        // IERC20(depositToken).approve(vaultDeployed, depositAmount1);
+        // RiveraAutoCompoundingVaultV2Public(vaultDeployed).deposit(depositAmount1, _user4);
         // vm.stopBroadcast();
     }
 
