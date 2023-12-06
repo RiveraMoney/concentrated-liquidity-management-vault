@@ -281,6 +281,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         (uint256 userAmount0, uint256 userAmount1) = _withdrawV3(_amount);
         uint256 withdrawAmount = _lptoDepositTokenSwap(userAmount0, userAmount1);
         IERC20(depositToken).safeTransfer(vault, withdrawAmount - withdrawAmount * withdrawFee / withdrawFeeDecimals);
+        IERC20(depositToken).safeTransfer(owner(),withdrawAmount * withdrawFee / withdrawFeeDecimals);
         emit Withdraw(balanceOf(), _amount);
     }
 
@@ -413,9 +414,9 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
     //     // rewardsAvbl= abi.decode(result, (uint256));
     // }
 
-    function lpRewardsAvailable() public view returns (uint256 lpFeesDepositToken) {
-        lpFeesDepositToken = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(depositToken == lpToken0, tokenID, stake, NonfungiblePositionManager, fullMathLib));
-    }
+    // function lpRewardsAvailable() public view returns (uint256 lpFeesDepositToken) {
+    //     lpFeesDepositToken = DexV3Calculations.unclaimedFeesOfLpPosition(UnclaimedLpFeesParams(depositToken == lpToken0, tokenID, stake, NonfungiblePositionManager, fullMathLib));
+    // }
 
     // called as part of strat migration. Sends all the available funds back to the vault.
     function retireStrat() external {
