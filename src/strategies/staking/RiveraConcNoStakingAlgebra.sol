@@ -231,12 +231,12 @@ contract RiveraConcNoStakingAlgebra is FeeManager, ReentrancyGuard, ERC721Holder
         uint256 currAmount0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 currAmount1Bal = IERC20(lpToken1).balanceOf(address(this));
         (uint256 x, uint256 y) = DexV3CalculationsAlgebra.changeInAmountsToNewRangeRatio(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
-        ChangeInAmountsForNewRatioParams(poolFee, currAmount0Bal, currAmount1Bal, fullMathLib));
+        ChangeInAmountsForNewRatioParams(IPancakeV3Pool(stake).fee(), currAmount0Bal, currAmount1Bal, fullMathLib));
         if (x!=0) {
-            _swapV3In(lpToken0, lpToken1, x, poolFee);
+            _swapV3In(lpToken0, lpToken1, x, IPancakeV3Pool(stake).fee());
         }
         if (y!=0) {
-            _swapV3In(lpToken1, lpToken0, y, poolFee);
+            _swapV3In(lpToken1, lpToken0, y, IPancakeV3Pool(stake).fee());
         }
     }
 
@@ -253,7 +253,7 @@ contract RiveraConcNoStakingAlgebra is FeeManager, ReentrancyGuard, ERC721Holder
 
     function _withdrawV3(uint256 _amount) internal returns (uint256 userAmount0,  uint256 userAmount1) {
         uint128 liquidityDelta = DexV3CalculationsAlgebra.calculateLiquidityDeltaForAssetAmount(LiquidityToAmountCalcParams(tickLower, tickUpper, 1e28, safeCastLib, sqrtPriceMathLib, tickMathLib, stake), 
-        LiquidityDeltaForAssetAmountParams(depositToken == lpToken0, poolFee, _amount, fullMathLib, liquidityAmountsLib));
+        LiquidityDeltaForAssetAmountParams(depositToken == lpToken0, IPancakeV3Pool(stake).fee(), _amount, fullMathLib, liquidityAmountsLib));
         uint128 liquidityAvlbl = liquidityBalance();
         if (liquidityDelta > liquidityAvlbl) {
             liquidityDelta = liquidityAvlbl;
@@ -324,12 +324,12 @@ contract RiveraConcNoStakingAlgebra is FeeManager, ReentrancyGuard, ERC721Holder
     function _lptoDepositTokenSwap(uint256 amount0, uint256 amount1) internal returns (uint256 totalDepositAsset) {
         uint256 amountOut;
         if (depositToken != lpToken0) {
-            if (amount0 != 0) {amountOut = _swapV3In(lpToken0, depositToken, amount0, poolFee);}
+            if (amount0 != 0) {amountOut = _swapV3In(lpToken0, depositToken, amount0, IPancakeV3Pool(stake).fee());}
             totalDepositAsset = amount1 + amountOut;
         }
 
         if (depositToken != lpToken1) {
-            if (amount1 != 0) {amountOut = _swapV3In(lpToken1, depositToken, amount1, poolFee);}
+            if (amount1 != 0) {amountOut = _swapV3In(lpToken1, depositToken, amount1, IPancakeV3Pool(stake).fee());}
             totalDepositAsset = amount0 + amountOut;
         }
     }
