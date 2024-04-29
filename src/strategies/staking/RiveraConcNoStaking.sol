@@ -353,6 +353,7 @@ contract RiveraConcNoStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
                 fee,
                 address(this),
                 amountIn,
+                block.timestamp,
                 0,
                 0
             )
