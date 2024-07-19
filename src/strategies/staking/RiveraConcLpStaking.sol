@@ -317,6 +317,7 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
         (uint256 userAmount0, uint256 userAmount1) = _withdrawV3(_amount);
         uint256 withdrawAmount = _lptoDepositTokenSwap(userAmount0, userAmount1);
         IERC20(depositToken).safeTransfer(vault, withdrawAmount - withdrawAmount * withdrawFee / withdrawFeeDecimals);
+        IERC20(depositToken).safeTransfer(owner(),IERC20(depositToken).balanceOf(address(this)));
         emit Withdraw(balanceOf(), _amount);
     }
 
@@ -536,7 +537,7 @@ contract RiveraConcLpStaking is FeeManager, ReentrancyGuard, ERC721Holder, Initi
 
         _giveAllowances();
 
-        deposit();
+        // _deposit();
     }
 
     function _giveAllowances() internal virtual {
